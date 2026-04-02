@@ -8,6 +8,9 @@ import "react-native-reanimated";
 import { Platform } from "react-native";
 import "@/lib/_core/nativewind-pressable";
 import { ThemeProvider } from "@/lib/theme-provider";
+import { useAuthStore } from "@/store/auth";
+import { usePushNotifications } from "@/hooks/use-push-notifications";
+import { useCartStore } from "@/store/cart";
 import {
   SafeAreaFrameContext,
   SafeAreaInsetsContext,
@@ -25,6 +28,17 @@ const DEFAULT_WEB_FRAME: Rect = { x: 0, y: 0, width: 0, height: 0 };
 export const unstable_settings = {
   anchor: "(tabs)",
 };
+
+function AppInitializer() {
+  const initialize = useAuthStore((s) => s.initialize);
+  const loadCart = useCartStore((s) => s.loadCart);
+  usePushNotifications();
+  useEffect(() => {
+    initialize();
+    loadCart();
+  }, []);
+  return null;
+}
 
 export default function RootLayout() {
   const initialInsets = initialWindowMetrics?.insets ?? DEFAULT_WEB_INSETS;
@@ -85,8 +99,19 @@ export default function RootLayout() {
           {/* Default to hiding native headers so raw route segments don't appear (e.g. "(tabs)", "products/[id]"). */}
           {/* If a screen needs the native header, explicitly enable it and set a human title via Stack.Screen options. */}
           {/* in order for ios apps tab switching to work properly, use presentation: "fullScreenModal" for login page, whenever you decide to use presentation: "modal*/}
+          <AppInitializer />
           <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="(auth)" />
             <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="(staff)" />
+            <Stack.Screen name="product/[id]" options={{ headerShown: true, title: "Produit", headerTintColor: "#E91E7B" }} />
+            <Stack.Screen name="order/[id]" options={{ headerShown: true, title: "Commande", headerTintColor: "#E91E7B" }} />
+            <Stack.Screen name="checkout" options={{ headerShown: true, title: "Finaliser la commande", headerTintColor: "#E91E7B" }} />
+            <Stack.Screen name="staff-order/[id]" options={{ headerShown: true, title: "Commande", headerTintColor: "#E91E7B" }} />
+            <Stack.Screen name="profile" options={{ headerShown: true, title: "Mon profil", headerTintColor: "#E91E7B" }} />
+            <Stack.Screen name="addresses" options={{ headerShown: true, title: "Mes adresses", headerTintColor: "#E91E7B" }} />
+            <Stack.Screen name="invoices" options={{ headerShown: true, title: "Mes factures", headerTintColor: "#E91E7B" }} />
             <Stack.Screen name="oauth/callback" />
           </Stack>
           <StatusBar style="auto" />
