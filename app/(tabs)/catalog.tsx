@@ -14,7 +14,6 @@ import {
 import { router, useLocalSearchParams } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { getProducts, getCategories } from "@/lib/api";
-import { DEMO_PRODUCTS, DEMO_CATEGORIES } from "@/lib/demo-data";
 import { useCartStore } from "@/store/cart";
 import type { Product, Category, ProductFilters } from "@/lib/types";
 import { getProductImage, getProductPrice, getProductBrand, isProductHalal } from "@/lib/types";
@@ -161,17 +160,15 @@ export default function CatalogScreen() {
       const currentPage = reset ? 1 : page + 1;
       const filters = { ...buildFilters(), page: currentPage };
       const result = await getProducts(filters);
-      const prods = result.products.length > 0 ? result.products : DEMO_PRODUCTS;
       if (reset) {
-        setProducts(prods);
+        setProducts(result.products);
       } else {
-        setProducts((prev) => [...prev, ...prods]);
+        setProducts((prev) => [...prev, ...result.products]);
         setPage(currentPage);
       }
       setTotalPages(result.totalPages || 1);
     } catch {
-      // Fallback démo
-      if (reset) setProducts(DEMO_PRODUCTS);
+      if (reset) setProducts([]);
       setTotalPages(1);
     } finally {
       setIsLoading(false);
@@ -186,9 +183,9 @@ export default function CatalogScreen() {
         // L'API retourne { categories: [...] }
         const cats = resp.categories ?? (Array.isArray(resp) ? resp : []);
         const active = cats.filter((c) => c.isActive !== false);
-        setCategories(active.length > 0 ? active : DEMO_CATEGORIES);
+        setCategories(active);
       })
-      .catch(() => setCategories(DEMO_CATEGORIES));
+      .catch(() => setCategories([]));
     loadProducts(true);
   }, []);
 

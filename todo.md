@@ -70,3 +70,16 @@
 - [ ] Écran produits basique avec FlatList + API réelle /api/produits
 - [ ] Vérifier que les 386 produits s'affichent
 - [ ] Ajouter les autres écrans un par un
+
+## Corrections prioritaires (02/04/2026 — Audit)
+- [ ] Bug 1 : Login staff — adapter l'appel API pour JWT dédié (pas NextAuth)
+- [ ] Bug 2 : KPIs dashboard — aligner DashboardKPIs types avec champs API réels (caMonth, ordersMonth…)
+- [ ] Bug 3 : Clients admin HTTP 500 — colonne vatNumber manquante (migration BDD + fix côté app)
+- [ ] Checkout : tester et corriger /api/checkout/shipping et /api/checkout/order
+- [ ] Bouton "Recommander" sur les anciennes commandes (order/[id].tsx)
+- [ ] Notifications push : expo-notifications + endpoint /api/push-token
+- [ ] Son ka-ching staff : expo-audio, polling nouvelles commandes
+- [ ] Supprimer tous les fallbacks mock (DEMO_PRODUCTS, DEMO_CATEGORIES)
+- [ ] Remplacer emojis marques par vrais logos depuis le site web
+- [ ] Pousser le code sur GitHub (assiasweet/assiasweet-mobile)
+- [ ] Générer APK de test via EAS Build

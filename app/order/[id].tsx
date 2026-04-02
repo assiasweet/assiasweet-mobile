@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { getOrder, downloadInvoice } from "@/lib/api";
+import { useCartStore } from "@/store/cart";
 import type { Order, OrderStatus } from "@/lib/types";
 
 const nav = router as unknown as { back: () => void };
@@ -34,6 +35,24 @@ export default function OrderDetailScreen() {
       .catch(() => Alert.alert("Erreur", "Commande introuvable"))
       .finally(() => setIsLoading(false));
   }, [id]);
+
+  const addItem = useCartStore((s) => s.addItem);
+
+  const handleReorder = () => {
+    if (!order?.items?.length) return;
+    let added = 0;
+    order.items.forEach((item) => {
+      if (item.product) {
+        addItem(item.product, item.quantity);
+        added++;
+      }
+    });
+    if (added > 0) {
+      router.push("/(tabs)/cart");
+    } else {
+      Alert.alert("Erreur", "Impossible de retrouver les produits de cette commande.");
+    }
+  };
 
   const handleDownloadInvoice = async () => {
     if (!order) return;
@@ -246,6 +265,26 @@ export default function OrderDetailScreen() {
             </View>
           </View>
         )}
+
+        {/* Bouton Recommander */}
+        <TouchableOpacity
+          onPress={handleReorder}
+          style={{
+            marginTop: 20,
+            backgroundColor: "#E91E7B",
+            borderRadius: 14,
+            paddingVertical: 14,
+            alignItems: "center",
+            flexDirection: "row",
+            justifyContent: "center",
+            gap: 8,
+          }}
+        >
+          <Text style={{ fontSize: 18 }}>{"\uD83D\uDD04"}</Text>
+          <Text style={{ color: "white", fontWeight: "700", fontSize: 15 }}>
+            Recommander cette commande
+          </Text>
+        </TouchableOpacity>
 
         {/* Bouton facture */}
         {(order.status === "LIVREE" || order.status === "EXPEDIEE") && (

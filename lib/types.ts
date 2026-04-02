@@ -264,11 +264,20 @@ export interface Slider {
 }
 
 // --- Shipping ---
+// L'API /api/checkout/shipping retourne ces champs réels
 export interface ShippingOption {
-  method: string;
+  id: string;                // "standard" | "relais" | "retrait"
   label: string;
-  price: number;
-  delay: string;
+  description?: string;
+  shippingCostHT: number;
+  shippingTVA: number;
+  shippingTTC: number;
+  isFree: boolean;
+  note?: string | null;
+  // Champs legacy pour compatibilité
+  method?: string;
+  price?: number;
+  delay?: string;
 }
 
 export interface ShippingResponse {
@@ -296,14 +305,30 @@ export interface Notification {
 }
 
 // --- Dashboard KPIs ---
+// Champs réels retournés par /api/dashboard
 export interface DashboardKPIs {
-  revenueToday: number;
-  ordersToday: number;
+  // KPIs du mois
+  caMonth: number;
+  caGrowth: number;
+  ordersMonth: number;
   pendingOrders: number;
   preparingOrders: number;
-  lowStockCount: number;
+  avgCart: number;
+  newCustomers: number;
+  totalCustomers: number;
+  outOfStock: number;
+  lowStock: number;
+  unpaidInvoicesCount: number;
+  unpaidInvoicesTotal: number;
+  // Données détaillées
+  salesEvolution?: { date: string; ca: number; orders: number }[];
+  topProducts?: { id: string; name: string; totalQty: number; totalCA: number }[];
   recentOrders: Order[];
-  lowStockProducts: Product[];
+  // Aliases pour compatibilité
+  revenueToday?: number;
+  ordersToday?: number;
+  lowStockCount?: number;
+  lowStockProducts?: Product[];
 }
 
 // --- Settings ---

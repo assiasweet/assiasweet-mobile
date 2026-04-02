@@ -12,7 +12,6 @@ import {
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { getProduct, getProducts } from "@/lib/api";
-import { DEMO_PRODUCTS } from "@/lib/demo-data";
 import { useCartStore } from "@/store/cart";
 import type { Product } from "@/lib/types";
 import {
@@ -57,9 +56,7 @@ export default function ProductDetailScreen() {
         }
       })
       .catch(() => {
-        const demoProduct = DEMO_PRODUCTS.find((p) => p.id === id) || DEMO_PRODUCTS[0];
-        setProduct(demoProduct);
-        setSimilar(DEMO_PRODUCTS.filter((p) => p.id !== demoProduct.id).slice(0, 4));
+        setProduct(null);
       })
       .finally(() => setIsLoading(false));
   }, [id]);

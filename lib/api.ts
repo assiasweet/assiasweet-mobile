@@ -201,73 +201,27 @@ export async function resetPassword(payload: {
 }
 
 // ============================================================
-// Auth — Staff
+// Auth - Staff
 // ============================================================
 export async function loginStaff(
   email: string,
   password: string
-): Promise<{ user: StaffUser; token?: string; cookie?: string }> {
-  // Essayer d'abord l'endpoint de login admin avec JWT
-  try {
-    const data = await request<{ user: StaffUser; token?: string; success?: boolean }>(
-      "/auth/admin-login",
-      {
-        method: "POST",
-        body: JSON.stringify({ email, password }),
-      }
-    );
-    if (data.token) {
-      await setStaffToken(data.token);
+): Promise<{ user: StaffUser; token?: string }> {
+  // Utiliser l'endpoint JWT dédié /api/auth/staff-login
+  const data = await request<{ user: StaffUser; token: string; success: boolean }>(
+    "/staff/login",
+    {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
     }
-    if (data.user) {
-      return { user: data.user, token: data.token };
-    }
-  } catch {
-    // Fallback vers NextAuth credentials
+  );
+  if (!data.success || !data.user) {
+    throw new Error("Identifiants incorrects ou accès refusé");
   }
-
-  // Fallback : NextAuth credentials endpoint
-  const response = await fetch(`${BASE_URL}/auth/callback/credentials`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      email,
-      password,
-      redirect: false,
-      callbackUrl: "/",
-      json: true,
-    }),
-    credentials: "include",
-  });
-
-  // Capturer le cookie de session
-  const setCookie = response.headers.get("set-cookie");
-  if (setCookie) {
-    await setStaffCookie(setCookie);
+  if (data.token) {
+    await setStaffToken(data.token);
   }
-
-  let data: { user?: StaffUser; ok?: boolean; url?: string } = {};
-  try {
-    data = await response.json();
-  } catch {
-    // ignore
-  }
-
-  if (data.user) {
-    return { user: data.user, cookie: setCookie || undefined };
-  }
-
-  // Si pas d'user dans la réponse, essayer de récupérer le profil
-  if (response.ok || setCookie) {
-    try {
-      const profile = await getStaffProfile();
-      return { user: profile };
-    } catch {
-      // ignore
-    }
-  }
-
-  throw new Error("Identifiants incorrects ou accès refusé");
+  return { user: data.user, token: data.token };
 }
 
 export async function getStaffProfile(): Promise<StaffUser> {
@@ -329,12 +283,24 @@ export async function getSettings(): Promise<SiteSettings> {
   return request<SiteSettings>("/settings");
 }
 
+export async function registerPushToken(
+  token: string,
+  userType: "customer" | "staff" = "customer"
+): Promise<void> {
+  const authType = userType === "staff" ? "staff" : "customer";
+  await request("/push-token", {
+    method: "POST",
+    body: JSON.stringify({ token, platform: "expo" }),
+  }, authType);
+}
+
 // ============================================================
 // Panier / Checkout
 // ============================================================
 export async function calculateShipping(payload: {
-  items: { productId: string; quantity: number }[];
-  addressId: string;
+  cartTotal: number;
+  country: string;
+  postalCode: string;
 }): Promise<ShippingResponse> {
   return request<ShippingResponse>("/checkout/shipping", {
     method: "POST",

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import { router } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { getDashboard } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
+import { useKaching } from "@/hooks/use-kaching";
 import type { DashboardKPIs } from "@/lib/types";
 
 const nav = router as unknown as { push: (path: string) => void; replace: (p: string) => void };
@@ -76,20 +77,35 @@ export default function DashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const staffName = auth.status === "staff" ? auth.user.name : "Staff";
+  const playKaching = useKaching();
+  const prevOrdersCount = useRef<number | null>(null);
 
-  const load = async () => {
+  const load = async (silent = false) => {
     try {
       const data = await getDashboard();
+      // Jouer le son ka-ching si de nouvelles commandes sont arrivees
+      if (prevOrdersCount.current !== null && data.ordersMonth > prevOrdersCount.current) {
+        playKaching();
+      }
+      prevOrdersCount.current = data.ordersMonth;
       setKpis(data);
     } catch {
       // ignore
     } finally {
-      setIsLoading(false);
-      setRefreshing(false);
+      if (!silent) {
+        setIsLoading(false);
+        setRefreshing(false);
+      }
     }
   };
 
-  useEffect(() => { load(); }, []);
+  // Polling toutes les 30 secondes pour detecter les nouvelles commandes
+  useEffect(() => {
+    load();
+    const interval = setInterval(() => load(true), 30000);
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleRefresh = () => { setRefreshing(true); load(); };
 
@@ -147,24 +163,24 @@ export default function DashboardScreen() {
         {/* KPIs */}
         <View style={{ paddingHorizontal: 16, marginBottom: 24 }}>
           <Text style={{ fontSize: 16, fontWeight: "700", color: "#1E1E1E", marginBottom: 12 }}>
-            Aujourd'hui
+            Ce mois-ci
           </Text>
           <View style={{ flexDirection: "row", gap: 12, marginBottom: 12 }}>
             <KPICard
               icon="💰"
-              label="Chiffre d'affaires"
-              value={`${(kpis?.revenueToday ?? 0).toFixed(0)} €`}
+              label="CA du mois"
+              value={`${((kpis?.caMonth ?? 0) / 100).toFixed(0)} €`}
               color="#E91E7B"
             />
             <KPICard
               icon="📦"
-              label="Commandes du jour"
-              value={kpis?.ordersToday ?? 0}
+              label="Commandes"
+              value={kpis?.ordersMonth ?? 0}
               color="#3B82F6"
               onPress={() => nav.push("/(staff)/orders")}
             />
           </View>
-          <View style={{ flexDirection: "row", gap: 12 }}>
+          <View style={{ flexDirection: "row", gap: 12, marginBottom: 12 }}>
             <KPICard
               icon="⏳"
               label="En attente"
@@ -180,10 +196,25 @@ export default function DashboardScreen() {
               onPress={() => nav.push("/(staff)/orders")}
             />
           </View>
+          <View style={{ flexDirection: "row", gap: 12 }}>
+            <KPICard
+              icon="👥"
+              label="Nouveaux clients"
+              value={kpis?.newCustomers ?? 0}
+              color="#10B981"
+              onPress={() => nav.push("/(staff)/clients")}
+            />
+            <KPICard
+              icon="🛒"
+              label="Panier moyen"
+              value={`${((kpis?.avgCart ?? 0) / 100).toFixed(0)} €`}
+              color="#6366F1"
+            />
+          </View>
         </View>
 
         {/* Alertes stock */}
-        {(kpis?.lowStockCount ?? 0) > 0 && (
+        {((kpis?.lowStock ?? kpis?.lowStockCount ?? 0) + (kpis?.outOfStock ?? 0)) > 0 && (
           <View style={{ marginHorizontal: 16, marginBottom: 24 }}>
             <TouchableOpacity
               onPress={() => nav.push("/(staff)/products")}
@@ -201,7 +232,7 @@ export default function DashboardScreen() {
               <Text style={{ fontSize: 28 }}>⚠️</Text>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 15, fontWeight: "700", color: "#92400E" }}>
-                  {kpis?.lowStockCount} produit{(kpis?.lowStockCount ?? 0) > 1 ? "s" : ""} en stock faible
+                  {(kpis?.lowStock ?? kpis?.lowStockCount ?? 0)} produit{((kpis?.lowStock ?? kpis?.lowStockCount ?? 0)) > 1 ? "s" : ""} en stock faible{(kpis?.outOfStock ?? 0) > 0 ? ` · ${kpis?.outOfStock} rupture${(kpis?.outOfStock ?? 0) > 1 ? "s" : ""}` : ""}
                 </Text>
                 <Text style={{ fontSize: 13, color: "#B45309", marginTop: 2 }}>
                   Appuyez pour gérer les stocks

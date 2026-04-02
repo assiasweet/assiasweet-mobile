@@ -22,16 +22,19 @@ import type { Product, Category } from "@/lib/types";
 const { width: W } = Dimensions.get("window");
 const CARD_W = (W - 48) / 2;
 
-// ─── Marques statiques avec logo emoji ───────────────────────────────────────
+// ─── Marques statiques avec vrais logos ─────────────────────────────────────
+const BASE = "https://assiasweet.vercel.app/brands";
 const BRANDS = [
-  { name: "Haribo", color: "#FFF3CD", emoji: "🐻" },
-  { name: "Damel", color: "#FCE4F0", emoji: "🍬" },
-  { name: "Fini", color: "#E8F5E9", emoji: "🍭" },
-  { name: "Dulceplus", color: "#E3F2FD", emoji: "☁️" },
-  { name: "Trolli", color: "#F3E5F5", emoji: "🪱" },
-  { name: "Malabar", color: "#FFF8E1", emoji: "🫧" },
-  { name: "Carambar", color: "#FBE9E7", emoji: "🍫" },
-  { name: "Lutti", color: "#E0F7FA", emoji: "🍡" },
+  { name: "Haribo", color: "#FFF3CD", logo: `${BASE}/haribo.webp` },
+  { name: "Damel", color: "#FCE4F0", logo: `${BASE}/damel.webp` },
+  { name: "Fini", color: "#E8F5E9", logo: `${BASE}/fini.png` },
+  { name: "Dulceplus", color: "#E3F2FD", logo: `${BASE}/dulceplus.jpg` },
+  { name: "Trolli", color: "#F3E5F5", logo: `${BASE}/trolli.png` },
+  { name: "Malabar", color: "#FFF8E1", logo: `${BASE}/malabar.jpg` },
+  { name: "Carambar", color: "#FBE9E7", logo: `${BASE}/carambar.webp` },
+  { name: "Hitschies", color: "#FFF0F5", logo: `${BASE}/hitschies.png` },
+  { name: "Chupa Chups", color: "#FEF9C3", logo: `${BASE}/chupa-chups.svg` },
+  { name: "Mentos", color: "#F0F9FF", logo: `${BASE}/mentos.png` },
 ];
 
 // ─── Bannières slider basées sur les catégories réelles ───────────────────────
@@ -401,7 +404,10 @@ export default function HomeScreen() {
                 activeOpacity={0.8}
               >
                 <View style={[styles.catCircle, { backgroundColor: b.color }]}>
-                  <Text style={{ fontSize: 26 }}>{b.emoji}</Text>
+                  <Image
+                    source={{ uri: b.logo }}
+                    style={{ width: 40, height: 40, resizeMode: "contain" }}
+                  />
                 </View>
                 <Text style={styles.catName}>{b.name}</Text>
               </TouchableOpacity>

@@ -57,29 +57,26 @@ export default function CheckoutScreen() {
       Alert.alert("Adresse requise", "Veuillez sélectionner une adresse de livraison.");
       return;
     }
+    const selectedAddr = addresses.find((a) => a.id === selectedAddressId);
     setIsCalculatingShipping(true);
     try {
       const result = await calculateShipping({
-        items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
-        addressId: selectedAddressId,
+        cartTotal: subtotalHT,
+        country: selectedAddr?.country || "FR",
+        postalCode: selectedAddr?.postalCode || "75000",
       });
-      setShippingOptions(result.options || [
-        { method: "GLS", label: "Livraison GLS (24-48h)", price: 0, delay: "24-48h" },
-        { method: "RETRAIT", label: "Retrait à Roissy-en-France", price: 0, delay: "Sur RDV" },
-      ]);
       if (result.options?.length > 0) {
-        setSelectedShipping(result.options[0].method);
-        setShippingPrice(result.options[0].price);
+        setShippingOptions(result.options);
+        setSelectedShipping(result.options[0].id);
+        setShippingPrice(result.options[0].shippingCostHT);
       }
       setStep("shipping");
     } catch {
-      // Fallback avec options par défaut
       const defaultOptions: ShippingOption[] = [
-        { method: "GLS", label: "Livraison GLS (24-48h)", price: 0, delay: "24-48h" },
-        { method: "RETRAIT", label: "Retrait à Roissy-en-France", price: 0, delay: "Sur RDV" },
+        { id: "retrait", label: "Retrait Roissy-en-France", shippingCostHT: 0, shippingTVA: 0, shippingTTC: 0, isFree: true },
       ];
       setShippingOptions(defaultOptions);
-      setSelectedShipping("GLS");
+      setSelectedShipping("retrait");
       setShippingPrice(0);
       setStep("shipping");
     } finally {
@@ -235,45 +232,52 @@ export default function CheckoutScreen() {
               Mode de livraison
             </Text>
 
-            {shippingOptions.map((option) => (
-              <TouchableOpacity
-                key={option.method}
-                onPress={() => {
-                  setSelectedShipping(option.method);
-                  setShippingPrice(option.price);
-                }}
-                style={{
-                  borderWidth: 2,
-                  borderColor: selectedShipping === option.method ? "#E91E7B" : "#E5E7EB",
-                  borderRadius: 14,
-                  padding: 16,
-                  backgroundColor: selectedShipping === option.method ? "#FCE4F0" : "white",
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 12,
-                }}
-              >
-                <Text style={{ fontSize: 28 }}>
-                  {option.method === "RETRAIT" ? "🏪" : "🚚"}
-                </Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontWeight: "700", color: "#1E1E1E", fontSize: 15 }}>
-                    {option.label}
+            {shippingOptions.map((option) => {
+              const optId = option.id || option.method || "";
+              const optPrice = option.shippingCostHT ?? option.price ?? 0;
+              const isRetrait = optId === "retrait" || option.method === "RETRAIT";
+              return (
+                <TouchableOpacity
+                  key={optId}
+                  onPress={() => {
+                    setSelectedShipping(optId);
+                    setShippingPrice(optPrice);
+                  }}
+                  style={{
+                    borderWidth: 2,
+                    borderColor: selectedShipping === optId ? "#E91E7B" : "#E5E7EB",
+                    borderRadius: 14,
+                    padding: 16,
+                    backgroundColor: selectedShipping === optId ? "#FCE4F0" : "white",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 12,
+                  }}
+                >
+                  <Text style={{ fontSize: 28 }}>
+                    {isRetrait ? "🏦" : optId === "relais" ? "📦" : "🚚"}
                   </Text>
-                  <Text style={{ color: "#6B7280", fontSize: 13, marginTop: 2 }}>
-                    Délai : {option.delay}
-                  </Text>
-                  {option.method === "RETRAIT" && (
-                    <Text style={{ color: "#6B7280", fontSize: 12, marginTop: 1 }}>
-                      161 rue Belle Étoile, Roissy-en-France
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontWeight: "700", color: "#1E1E1E", fontSize: 15 }}>
+                      {option.label}
                     </Text>
-                  )}
-                </View>
-                <Text style={{ color: "#E91E7B", fontWeight: "800", fontSize: 15 }}>
-                  {option.price === 0 ? "Gratuit" : `${option.price.toFixed(2)} €`}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                    {option.description && (
+                      <Text style={{ color: "#6B7280", fontSize: 12, marginTop: 2 }}>
+                        {option.description}
+                      </Text>
+                    )}
+                    {isRetrait && (
+                      <Text style={{ color: "#6B7280", fontSize: 12, marginTop: 1 }}>
+                        161 rue Belle Étoile, Roissy-en-France
+                      </Text>
+                    )}
+                  </View>
+                  <Text style={{ color: "#E91E7B", fontWeight: "800", fontSize: 15 }}>
+                    {option.isFree || optPrice === 0 ? "Gratuit" : `${optPrice.toFixed(2)} € HT`}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
 
             <View>
               <Text style={{ fontSize: 14, fontWeight: "600", color: "#1E1E1E", marginBottom: 8 }}>
