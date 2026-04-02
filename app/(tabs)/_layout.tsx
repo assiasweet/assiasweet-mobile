@@ -1,9 +1,24 @@
 import { Tabs } from "expo-router";
-import { Platform } from "react-native";
+import { Platform, View, Text, StyleSheet } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { useCartStore } from "@/store/cart";
 
 const PINK = "#E91E7B";
-const GRAY = "#9BA1A6";
+const GRAY = "#9CA3AF";
+
+function CartIcon({ color }: { color: string }) {
+  const count = useCartStore((s) => s.items.reduce((acc, i) => acc + i.quantity, 0));
+  return (
+    <View style={{ width: 28, height: 28, alignItems: "center", justifyContent: "center" }}>
+      <MaterialIcons name="shopping-cart" size={26} color={color} />
+      {count > 0 && (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{count > 99 ? "99+" : count}</Text>
+        </View>
+      )}
+    </View>
+  );
+}
 
 export default function TabLayout() {
   return (
@@ -14,15 +29,21 @@ export default function TabLayout() {
         tabBarInactiveTintColor: GRAY,
         tabBarStyle: {
           backgroundColor: "#fff",
-          borderTopColor: "#eee",
-          borderTopWidth: 0.5,
-          paddingBottom: Platform.OS === "ios" ? 20 : 8,
-          paddingTop: 6,
-          height: Platform.OS === "ios" ? 80 : 60,
+          borderTopColor: "#F3F4F6",
+          borderTopWidth: 1,
+          paddingBottom: Platform.OS === "ios" ? 22 : 8,
+          paddingTop: 8,
+          height: Platform.OS === "ios" ? 84 : 64,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.06,
+          shadowRadius: 8,
+          elevation: 12,
         },
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: "600",
+          marginTop: 2,
         },
       }}
     >
@@ -44,7 +65,7 @@ export default function TabLayout() {
         name="cart"
         options={{
           title: "Panier",
-          tabBarIcon: ({ color }) => <MaterialIcons name="shopping-cart" size={26} color={color} />,
+          tabBarIcon: ({ color }) => <CartIcon color={color} />,
         }}
       />
       <Tabs.Screen
@@ -64,3 +85,26 @@ export default function TabLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  badge: {
+    position: "absolute",
+    top: -4,
+    right: -6,
+    backgroundColor: PINK,
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: "#fff",
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "800",
+    lineHeight: 13,
+  },
+});
