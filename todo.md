@@ -45,3 +45,10 @@
 - [x] Configurer splash screen
 - [x] Configurer app.config.ts (nom "AssiaSweet", bundle ID, icônes)
 - [x] Couleur adaptive icon Android (#E91E7B)
+
+## Bugs à corriger (signalés par l'utilisateur)
+- [x] Parcours Client B2B non fonctionnel : après login client, l'app affiche l'interface staff
+- [x] Navigation tabs client B2B (Accueil/Catalogue/Panier/Commandes/Compte) non visible
+- [x] Redirection post-login incorrecte selon le rôle (customer → tabs, staff → staff)
+- [x] Écran index.tsx ne redirige pas correctement vers /(tabs) pour les clients
+- [x] Vérifier tous les écrans client B2B (accueil, catalogue, panier, checkout)

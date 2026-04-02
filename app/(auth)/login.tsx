@@ -9,7 +9,6 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  Image,
 } from "react-native";
 import { router } from "expo-router";
 import { useAuthStore } from "@/store/auth";
@@ -27,18 +26,24 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert("Erreur", "Veuillez remplir tous les champs.");
+      Alert.alert("Champs manquants", "Veuillez remplir votre email et mot de passe.");
       return;
     }
 
     setIsLoading(true);
     try {
       if (loginType === "customer") {
-        await loginAsCustomer(email.trim(), password);
-        (router as unknown as { replace: (p: string) => void }).replace("/(tabs)");
+        await loginAsCustomer(email.trim().toLowerCase(), password);
+        // Redirection explicite vers l'accueil client
+        setTimeout(() => {
+          router.replace("/(tabs)/index" as never);
+        }, 50);
       } else {
-        await loginAsStaff(email.trim(), password);
-        (router as unknown as { replace: (p: string) => void }).replace("/(staff)");
+        await loginAsStaff(email.trim().toLowerCase(), password);
+        // Redirection explicite vers le dashboard staff
+        setTimeout(() => {
+          router.replace("/(staff)/dashboard" as never);
+        }, 50);
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Erreur de connexion";
@@ -55,82 +60,115 @@ export default function LoginScreen() {
         style={{ flex: 1 }}
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          {/* Header avec logo */}
-          <View className="items-center pt-12 pb-8 px-6">
+          {/* Logo & titre */}
+          <View style={{ alignItems: "center", paddingTop: 48, paddingBottom: 32, paddingHorizontal: 24 }}>
             <View
               style={{
-                width: 80,
-                height: 80,
-                borderRadius: 20,
+                width: 88,
+                height: 88,
+                borderRadius: 22,
                 backgroundColor: "#E91E7B",
                 alignItems: "center",
                 justifyContent: "center",
                 marginBottom: 16,
+                shadowColor: "#E91E7B",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+                elevation: 8,
               }}
             >
-              <Text style={{ color: "white", fontSize: 28, fontWeight: "800" }}>A</Text>
+              <Text style={{ color: "white", fontSize: 36, fontWeight: "800" }}>A</Text>
             </View>
-            <Text className="text-3xl font-bold text-foreground">AssiaSweet</Text>
-            <Text className="text-muted mt-1 text-base">Grossiste B2B en confiseries</Text>
+            <Text style={{ fontSize: 28, fontWeight: "800", color: "#1E1E1E", letterSpacing: -0.5 }}>
+              AssiaSweet
+            </Text>
+            <Text style={{ fontSize: 14, color: "#6B7280", marginTop: 4 }}>
+              Grossiste B2B en confiseries
+            </Text>
           </View>
 
-          {/* Toggle Client / Staff */}
-          <View className="mx-6 mb-6 flex-row bg-surface rounded-xl p-1">
+          {/* Sélecteur Espace Client / Espace Staff */}
+          <View
+            style={{
+              marginHorizontal: 24,
+              marginBottom: 28,
+              flexDirection: "row",
+              backgroundColor: "#F3F4F6",
+              borderRadius: 14,
+              padding: 4,
+            }}
+          >
             <TouchableOpacity
               style={{ flex: 1 }}
               onPress={() => setLoginType("customer")}
+              activeOpacity={0.8}
             >
               <View
                 style={{
-                  paddingVertical: 10,
-                  borderRadius: 10,
+                  paddingVertical: 12,
+                  borderRadius: 11,
                   alignItems: "center",
                   backgroundColor: loginType === "customer" ? "#E91E7B" : "transparent",
+                  shadowColor: loginType === "customer" ? "#E91E7B" : "transparent",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 4,
+                  elevation: loginType === "customer" ? 3 : 0,
                 }}
               >
                 <Text
                   style={{
-                    fontWeight: "600",
-                    color: loginType === "customer" ? "white" : "#6B7280",
+                    fontWeight: "700",
                     fontSize: 14,
+                    color: loginType === "customer" ? "white" : "#6B7280",
                   }}
                 >
-                  Espace Client
+                  🛒 Espace Client
                 </Text>
               </View>
             </TouchableOpacity>
+
             <TouchableOpacity
               style={{ flex: 1 }}
               onPress={() => setLoginType("staff")}
+              activeOpacity={0.8}
             >
               <View
                 style={{
-                  paddingVertical: 10,
-                  borderRadius: 10,
+                  paddingVertical: 12,
+                  borderRadius: 11,
                   alignItems: "center",
                   backgroundColor: loginType === "staff" ? "#1E1E1E" : "transparent",
+                  shadowColor: loginType === "staff" ? "#1E1E1E" : "transparent",
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 4,
+                  elevation: loginType === "staff" ? 3 : 0,
                 }}
               >
                 <Text
                   style={{
-                    fontWeight: "600",
-                    color: loginType === "staff" ? "white" : "#6B7280",
+                    fontWeight: "700",
                     fontSize: 14,
+                    color: loginType === "staff" ? "white" : "#6B7280",
                   }}
                 >
-                  Espace Staff
+                  ⚙️ Espace Staff
                 </Text>
               </View>
             </TouchableOpacity>
           </View>
 
           {/* Formulaire */}
-          <View className="px-6 gap-4">
+          <View style={{ paddingHorizontal: 24, gap: 16 }}>
+            {/* Email */}
             <View>
-              <Text className="text-sm font-medium text-foreground mb-2">
+              <Text style={{ fontSize: 13, fontWeight: "600", color: "#374151", marginBottom: 8 }}>
                 Adresse email
               </Text>
               <TextInput
@@ -143,20 +181,21 @@ export default function LoginScreen() {
                 autoComplete="email"
                 returnKeyType="next"
                 style={{
-                  borderWidth: 1,
+                  borderWidth: 1.5,
                   borderColor: "#E5E7EB",
                   borderRadius: 12,
                   paddingHorizontal: 16,
                   paddingVertical: 14,
                   fontSize: 16,
                   color: "#1E1E1E",
-                  backgroundColor: "#F9FAFB",
+                  backgroundColor: "#FAFAFA",
                 }}
               />
             </View>
 
+            {/* Mot de passe */}
             <View>
-              <Text className="text-sm font-medium text-foreground mb-2">
+              <Text style={{ fontSize: 13, fontWeight: "600", color: "#374151", marginBottom: 8 }}>
                 Mot de passe
               </Text>
               <View style={{ position: "relative" }}>
@@ -169,87 +208,79 @@ export default function LoginScreen() {
                   returnKeyType="done"
                   onSubmitEditing={handleLogin}
                   style={{
-                    borderWidth: 1,
+                    borderWidth: 1.5,
                     borderColor: "#E5E7EB",
                     borderRadius: 12,
                     paddingHorizontal: 16,
                     paddingVertical: 14,
-                    paddingRight: 50,
+                    paddingRight: 60,
                     fontSize: 16,
                     color: "#1E1E1E",
-                    backgroundColor: "#F9FAFB",
+                    backgroundColor: "#FAFAFA",
                   }}
                 />
                 <TouchableOpacity
                   onPress={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: "absolute",
-                    right: 16,
-                    top: 14,
-                  }}
+                  style={{ position: "absolute", right: 16, top: 15 }}
+                  activeOpacity={0.7}
                 >
-                  <Text style={{ color: "#6B7280", fontSize: 14 }}>
-                    {showPassword ? "Masquer" : "Voir"}
+                  <Text style={{ color: "#6B7280", fontSize: 13, fontWeight: "500" }}>
+                    {showPassword ? "Masquer" : "Afficher"}
                   </Text>
                 </TouchableOpacity>
               </View>
             </View>
 
+            {/* Mot de passe oublié */}
             {loginType === "customer" && (
               <TouchableOpacity
-                onPress={() =>
-                  (router as unknown as { push: (p: string) => void }).push(
-                    "/(auth)/reset-password"
-                  )
-                }
+                onPress={() => router.push("/(auth)/reset-password" as never)}
+                activeOpacity={0.7}
+                style={{ alignSelf: "flex-end" }}
               >
-                <Text
-                  style={{
-                    color: "#E91E7B",
-                    fontSize: 14,
-                    textAlign: "right",
-                    fontWeight: "500",
-                  }}
-                >
+                <Text style={{ color: "#E91E7B", fontSize: 13, fontWeight: "600" }}>
                   Mot de passe oublié ?
                 </Text>
               </TouchableOpacity>
             )}
 
+            {/* Bouton connexion */}
             <TouchableOpacity
               onPress={handleLogin}
               disabled={isLoading}
+              activeOpacity={0.85}
               style={{
                 backgroundColor: loginType === "customer" ? "#E91E7B" : "#1E1E1E",
                 borderRadius: 14,
                 paddingVertical: 16,
                 alignItems: "center",
-                marginTop: 8,
+                marginTop: 4,
                 opacity: isLoading ? 0.7 : 1,
+                shadowColor: loginType === "customer" ? "#E91E7B" : "#000",
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.25,
+                shadowRadius: 8,
+                elevation: 6,
               }}
             >
               {isLoading ? (
                 <ActivityIndicator color="white" />
               ) : (
-                <Text
-                  style={{ color: "white", fontSize: 16, fontWeight: "700" }}
-                >
-                  Se connecter
+                <Text style={{ color: "white", fontSize: 16, fontWeight: "700", letterSpacing: 0.3 }}>
+                  {loginType === "customer" ? "Se connecter" : "Accès Staff"}
                 </Text>
               )}
             </TouchableOpacity>
 
+            {/* Inscription */}
             {loginType === "customer" && (
-              <View className="flex-row justify-center mt-4">
-                <Text className="text-muted">Pas encore de compte ? </Text>
+              <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 8 }}>
+                <Text style={{ color: "#6B7280", fontSize: 14 }}>Pas encore de compte ? </Text>
                 <TouchableOpacity
-                  onPress={() =>
-                    (router as unknown as { push: (p: string) => void }).push(
-                      "/(auth)/register"
-                    )
-                  }
+                  onPress={() => router.push("/(auth)/register" as never)}
+                  activeOpacity={0.7}
                 >
-                  <Text style={{ color: "#E91E7B", fontWeight: "600" }}>
+                  <Text style={{ color: "#E91E7B", fontWeight: "700", fontSize: 14 }}>
                     S'inscrire
                   </Text>
                 </TouchableOpacity>
@@ -257,10 +288,10 @@ export default function LoginScreen() {
             )}
           </View>
 
-          {/* Footer info */}
-          <View className="items-center mt-8 mb-6 px-6">
-            <Text className="text-muted text-xs text-center">
-              Plateforme réservée aux professionnels (épiceries, forains, revendeurs)
+          {/* Footer */}
+          <View style={{ alignItems: "center", marginTop: 32, paddingHorizontal: 24 }}>
+            <Text style={{ color: "#9CA3AF", fontSize: 12, textAlign: "center", lineHeight: 18 }}>
+              Plateforme réservée aux professionnels{"\n"}(épiceries, forains, revendeurs)
             </Text>
           </View>
         </ScrollView>

@@ -28,7 +28,7 @@ const STAFF_TOKEN_KEY = "staff_token";
 const STAFF_COOKIE_KEY = "staff_cookie";
 
 // ============================================================
-// Token helpers
+// Token helpers — Customer
 // ============================================================
 export async function getCustomerToken(): Promise<string | null> {
   return SecureStore.getItemAsync(CUSTOMER_TOKEN_KEY);
@@ -42,6 +42,9 @@ export async function removeCustomerToken(): Promise<void> {
   await SecureStore.deleteItemAsync(CUSTOMER_TOKEN_KEY);
 }
 
+// ============================================================
+// Token helpers — Staff
+// ============================================================
 export async function getStaffCookie(): Promise<string | null> {
   return SecureStore.getItemAsync(STAFF_COOKIE_KEY);
 }
@@ -51,6 +54,21 @@ export async function setStaffCookie(cookie: string): Promise<void> {
 }
 
 export async function removeStaffCookie(): Promise<void> {
+  await SecureStore.deleteItemAsync(STAFF_COOKIE_KEY);
+}
+
+export async function getStaffToken(): Promise<string | null> {
+  const token = await SecureStore.getItemAsync(STAFF_TOKEN_KEY);
+  if (token) return token;
+  return SecureStore.getItemAsync(STAFF_COOKIE_KEY);
+}
+
+export async function setStaffToken(token: string): Promise<void> {
+  await SecureStore.setItemAsync(STAFF_TOKEN_KEY, token);
+}
+
+export async function removeStaffToken(): Promise<void> {
+  await SecureStore.deleteItemAsync(STAFF_TOKEN_KEY);
   await SecureStore.deleteItemAsync(STAFF_COOKIE_KEY);
 }
 
@@ -73,9 +91,15 @@ async function request<T>(
       headers["Authorization"] = `Bearer ${token}`;
     }
   } else if (authType === "staff") {
-    const cookie = await getStaffCookie();
-    if (cookie) {
-      headers["Cookie"] = cookie;
+    // Try JWT token first, then cookie
+    const staffToken = await SecureStore.getItemAsync(STAFF_TOKEN_KEY);
+    if (staffToken) {
+      headers["Authorization"] = `Bearer ${staffToken}`;
+    } else {
+      const cookie = await getStaffCookie();
+      if (cookie) {
+        headers["Cookie"] = cookie;
+      }
     }
   }
 
@@ -177,12 +201,32 @@ export async function resetPassword(payload: {
 }
 
 // ============================================================
-// Auth — Staff (NextAuth)
+// Auth — Staff
 // ============================================================
 export async function loginStaff(
   email: string,
   password: string
-): Promise<{ user: StaffUser; cookie?: string }> {
+): Promise<{ user: StaffUser; token?: string; cookie?: string }> {
+  // Essayer d'abord l'endpoint de login admin avec JWT
+  try {
+    const data = await request<{ user: StaffUser; token?: string; success?: boolean }>(
+      "/auth/admin-login",
+      {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      }
+    );
+    if (data.token) {
+      await setStaffToken(data.token);
+    }
+    if (data.user) {
+      return { user: data.user, token: data.token };
+    }
+  } catch {
+    // Fallback vers NextAuth credentials
+  }
+
+  // Fallback : NextAuth credentials endpoint
   const response = await fetch(`${BASE_URL}/auth/callback/credentials`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -196,13 +240,34 @@ export async function loginStaff(
     credentials: "include",
   });
 
+  // Capturer le cookie de session
   const setCookie = response.headers.get("set-cookie");
   if (setCookie) {
     await setStaffCookie(setCookie);
   }
 
-  const data = await response.json();
-  return data;
+  let data: { user?: StaffUser; ok?: boolean; url?: string } = {};
+  try {
+    data = await response.json();
+  } catch {
+    // ignore
+  }
+
+  if (data.user) {
+    return { user: data.user, cookie: setCookie || undefined };
+  }
+
+  // Si pas d'user dans la réponse, essayer de récupérer le profil
+  if (response.ok || setCookie) {
+    try {
+      const profile = await getStaffProfile();
+      return { user: profile };
+    } catch {
+      // ignore
+    }
+  }
+
+  throw new Error("Identifiants incorrects ou accès refusé");
 }
 
 export async function getStaffProfile(): Promise<StaffUser> {
@@ -215,6 +280,7 @@ export async function logoutStaff(): Promise<void> {
   } catch {
     // ignore
   }
+  await removeStaffToken();
   await removeStaffCookie();
 }
 
@@ -286,6 +352,10 @@ export async function getCustomerOrders(): Promise<Order[]> {
   return request<Order[]>("/auth/customer-orders", {}, "customer");
 }
 
+export async function getOrder(id: string): Promise<Order> {
+  return request<Order>(`/auth/customer-orders/${id}`, {}, "customer");
+}
+
 // ============================================================
 // Adresses client
 // ============================================================
@@ -316,6 +386,17 @@ export async function deleteAddress(id: string): Promise<void> {
 // ============================================================
 export async function getInvoices(): Promise<Invoice[]> {
   return request<Invoice[]>("/compte/factures", {}, "customer");
+}
+
+export async function downloadInvoice(orderId: string): Promise<void> {
+  const token = await getCustomerToken();
+  const url = `${BASE_URL}/compte/factures/${orderId}/pdf`;
+  const response = await fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!response.ok) throw new Error("Impossible de télécharger la facture");
+  const { Linking } = await import("react-native");
+  await Linking.openURL(url);
 }
 
 // ============================================================
@@ -382,7 +463,11 @@ export async function updateProductStock(
 
 export async function getProductByBarcode(barcode: string): Promise<Product | null> {
   try {
-    const result = await request<ProductsResponse>(`/admin/produits?barcode=${encodeURIComponent(barcode)}`, {}, "staff");
+    const result = await request<ProductsResponse>(
+      `/admin/produits?barcode=${encodeURIComponent(barcode)}`,
+      {},
+      "staff"
+    );
     return result.products?.[0] ?? null;
   } catch {
     return null;
@@ -402,7 +487,11 @@ export async function getAdminClients(filters?: {
   if (filters?.status) params.set("status", filters.status);
   if (filters?.page) params.set("page", String(filters.page));
   const query = params.toString();
-  return request<{ clients: Customer[]; total: number }>(`/admin/clients${query ? `?${query}` : ""}`, {}, "staff");
+  return request<{ clients: Customer[]; total: number }>(
+    `/admin/clients${query ? `?${query}` : ""}`,
+    {},
+    "staff"
+  );
 }
 
 export async function getAdminClient(id: string): Promise<Customer> {
@@ -445,26 +534,4 @@ export async function updateInventory(
     method: "PUT",
     body: JSON.stringify({ productId, stock }),
   }, "staff");
-}
-
-// ============================================================
-// Commande client — détail
-// ============================================================
-export async function getOrder(id: string): Promise<Order> {
-  return request<Order>(`/auth/customer-orders/${id}`, {}, "customer");
-}
-
-// ============================================================
-// Facture — téléchargement
-// ============================================================
-export async function downloadInvoice(orderId: string): Promise<void> {
-  const token = await getCustomerToken();
-  const url = `${BASE_URL}/compte/factures/${orderId}/pdf`;
-  const response = await fetch(url, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
-  if (!response.ok) throw new Error("Impossible de télécharger la facture");
-  // On ouvre simplement l'URL dans le navigateur via Linking
-  const { Linking } = await import("react-native");
-  await Linking.openURL(url);
 }
