@@ -54,8 +54,38 @@ export default function LoginScreen() {
     }
   };
 
+  const canGoBack = router.canGoBack();
+
   return (
     <ScreenContainer containerClassName="bg-white" edges={["top", "left", "right", "bottom"]}>
+      {/* Bouton retour */}
+      <TouchableOpacity
+        onPress={() => {
+          if (canGoBack) {
+            router.back();
+          } else {
+            router.replace("/(tabs)/index" as never);
+          }
+        }}
+        style={{
+          position: "absolute",
+          top: 52,
+          left: 16,
+          zIndex: 10,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: 4,
+          paddingVertical: 6,
+          paddingHorizontal: 10,
+          borderRadius: 20,
+          backgroundColor: "#F3F4F6",
+        }}
+        activeOpacity={0.7}
+      >
+        <Text style={{ fontSize: 18, color: "#374151" }}>‹</Text>
+        <Text style={{ fontSize: 13, fontWeight: "600", color: "#374151" }}>Retour</Text>
+      </TouchableOpacity>
+
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
@@ -66,7 +96,7 @@ export default function LoginScreen() {
           showsVerticalScrollIndicator={false}
         >
           {/* Logo & titre */}
-          <View style={{ alignItems: "center", paddingTop: 48, paddingBottom: 32, paddingHorizontal: 24 }}>
+          <View style={{ alignItems: "center", paddingTop: 80, paddingBottom: 32, paddingHorizontal: 24 }}>
             <Image
               source={require("@/assets/images/icon.png")}
               style={{
@@ -281,6 +311,26 @@ export default function LoginScreen() {
               </View>
             )}
           </View>
+
+          {/* Continuer sans compte */}
+          {loginType === "customer" && (
+            <View style={{ alignItems: "center", marginTop: 16 }}>
+              <TouchableOpacity
+                onPress={() => {
+                  if (canGoBack) {
+                    router.back();
+                  } else {
+                    router.replace("/(tabs)/index" as never);
+                  }
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={{ color: "#9CA3AF", fontSize: 14, textDecorationLine: "underline" }}>
+                  Continuer sans se connecter
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Footer */}
           <View style={{ alignItems: "center", marginTop: 32, paddingHorizontal: 24 }}>
