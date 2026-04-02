@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { CartItem, Product } from "@/lib/types";
+import { getProductImage, getProductPrice, getProductBrand } from "@/lib/types";
 
 const CART_STORAGE_KEY = "assiasweet_cart";
 
@@ -60,11 +61,11 @@ export const useCartStore = create<CartStore>((set, get) => ({
       const newItem: CartItem = {
         productId: product.id,
         productName: product.name,
-        productImage: product.images?.[0],
+        productImage: getProductImage(product),
         quantity,
-        unitPriceHT: product.price,
-        tvaRate: product.tva,
-        brand: product.brand?.name,
+        unitPriceHT: getProductPrice(product),
+        tvaRate: product.tva ?? 5.5,
+        brand: getProductBrand(product),
         sku: product.sku,
       };
       newItems = [...items, newItem];

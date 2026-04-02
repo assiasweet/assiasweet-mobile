@@ -15,6 +15,13 @@ import { getProduct, getProducts } from "@/lib/api";
 import { DEMO_PRODUCTS } from "@/lib/demo-data";
 import { useCartStore } from "@/store/cart";
 import type { Product } from "@/lib/types";
+import {
+  getProductImage,
+  getProductPrice,
+  getProductBrand,
+  getProductCategory,
+  isProductHalal,
+} from "@/lib/types";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const nav = router as unknown as { push: (path: string) => void; back: () => void };
@@ -36,13 +43,20 @@ export default function ProductDetailScreen() {
     getProduct(id)
       .then(async (p) => {
         setProduct(p);
-        if (p.category?.id) {
-          const sim = await getProducts({ category: p.category.id, limit: 6 }).catch(() => ({ products: DEMO_PRODUCTS.filter(d => d.category?.id === p.category?.id), total: 0, page: 1, totalPages: 1 }));
-          setSimilar(sim.products.filter((s) => s.id !== p.id).slice(0, 5));
+        // Charger des produits similaires si une catégorie est disponible
+        const catId = typeof p.category === "object" && p.category ? p.category.id : undefined;
+        const catSlug = typeof p.category === "string" ? p.category : undefined;
+        const catFilter = catId || catSlug;
+        if (catFilter) {
+          try {
+            const sim = await getProducts({ category: catFilter, limit: 6 });
+            setSimilar(sim.products.filter((s) => s.id !== p.id).slice(0, 5));
+          } catch {
+            setSimilar([]);
+          }
         }
       })
       .catch(() => {
-        // Fallback démo : chercher le produit dans les données démo
         const demoProduct = DEMO_PRODUCTS.find((p) => p.id === id) || DEMO_PRODUCTS[0];
         setProduct(demoProduct);
         setSimilar(DEMO_PRODUCTS.filter((p) => p.id !== demoProduct.id).slice(0, 4));
@@ -76,17 +90,43 @@ export default function ProductDetailScreen() {
     );
   }
 
-  const priceTTC = product.price * (1 + product.tva / 100);
+  const priceHT = getProductPrice(product);
+  const priceTTC = priceHT * (1 + (product.tva ?? 5.5) / 100);
+  const mainImage = getProductImage(product);
+  const brandName = getProductBrand(product);
+  const isHalal = isProductHalal(product);
+  const allImages = mainImage
+    ? [mainImage, ...(product.images?.filter((img) => img !== mainImage) ?? [])]
+    : (product.images ?? []);
 
   return (
     <View style={{ flex: 1, backgroundColor: "white" }}>
+      {/* Back button */}
+      <TouchableOpacity
+        onPress={() => nav.back()}
+        style={{
+          position: "absolute",
+          top: 48,
+          left: 16,
+          zIndex: 10,
+          backgroundColor: "rgba(255,255,255,0.9)",
+          borderRadius: 20,
+          width: 40,
+          height: 40,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Text style={{ fontSize: 20, color: "#1E1E1E" }}>‹</Text>
+      </TouchableOpacity>
+
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Galerie images */}
         <View style={{ height: 300, backgroundColor: "#F9FAFB" }}>
-          {product.images && product.images.length > 0 ? (
+          {allImages.length > 0 ? (
             <>
               <FlatList
-                data={product.images}
+                data={allImages}
                 horizontal
                 pagingEnabled
                 showsHorizontalScrollIndicator={false}
@@ -103,7 +143,7 @@ export default function ProductDetailScreen() {
                   />
                 )}
               />
-              {product.images.length > 1 && (
+              {allImages.length > 1 && (
                 <View
                   style={{
                     position: "absolute",
@@ -115,7 +155,7 @@ export default function ProductDetailScreen() {
                     gap: 6,
                   }}
                 >
-                  {product.images.map((_, i) => (
+                  {allImages.map((_, i) => (
                     <View
                       key={i}
                       style={{
@@ -138,7 +178,7 @@ export default function ProductDetailScreen() {
 
         {/* Badges */}
         <View style={{ flexDirection: "row", gap: 6, paddingHorizontal: 16, paddingTop: 16, flexWrap: "wrap" }}>
-          {product.isHalal && (
+          {isHalal && (
             <View style={{ backgroundColor: "#DCFCE7", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
               <Text style={{ color: "#16A34A", fontSize: 12, fontWeight: "700" }}>✓ HALAL</Text>
             </View>
@@ -158,7 +198,7 @@ export default function ProductDetailScreen() {
               <Text style={{ color: "#2563EB", fontSize: 12, fontWeight: "700" }}>NOUVEAU</Text>
             </View>
           )}
-          {product.isPromo && (
+          {(product.isPromo || (product.discount && product.discount > 0)) && (
             <View style={{ backgroundColor: "#FEF3C7", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
               <Text style={{ color: "#D97706", fontSize: 12, fontWeight: "700" }}>PROMO</Text>
             </View>
@@ -167,9 +207,9 @@ export default function ProductDetailScreen() {
 
         {/* Infos produit */}
         <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
-          {product.brand && (
+          {brandName && (
             <Text style={{ color: "#9CA3AF", fontSize: 13, marginBottom: 4 }}>
-              {product.brand.name}
+              {brandName}
             </Text>
           )}
           <Text style={{ fontSize: 22, fontWeight: "800", color: "#1E1E1E", lineHeight: 28 }}>
@@ -196,10 +236,10 @@ export default function ProductDetailScreen() {
           >
             <View>
               <Text style={{ color: "#E91E7B", fontSize: 28, fontWeight: "800" }}>
-                {product.price.toFixed(2)} €
+                {priceHT.toFixed(2)} €
               </Text>
               <Text style={{ color: "#E91E7B", fontSize: 13, fontWeight: "600" }}>
-                HT (TVA {product.tva}%)
+                HT (TVA {product.tva ?? 5.5}%)
               </Text>
             </View>
             <View>
@@ -217,11 +257,13 @@ export default function ProductDetailScreen() {
                 width: 10,
                 height: 10,
                 borderRadius: 5,
-                backgroundColor: product.stock > 0 ? "#22C55E" : "#EF4444",
+                backgroundColor: (product.inStock !== false && product.stock > 0) ? "#22C55E" : "#EF4444",
               }}
             />
-            <Text style={{ color: product.stock > 0 ? "#16A34A" : "#DC2626", fontSize: 13, fontWeight: "600" }}>
-              {product.stock > 0 ? `En stock (${product.stock} unités)` : "Rupture de stock"}
+            <Text style={{ color: (product.inStock !== false && product.stock > 0) ? "#16A34A" : "#DC2626", fontSize: 13, fontWeight: "600" }}>
+              {(product.inStock !== false && product.stock > 0)
+                ? `En stock (${product.stock} unités)`
+                : "Rupture de stock"}
             </Text>
           </View>
         </View>
@@ -258,8 +300,8 @@ export default function ProductDetailScreen() {
             {activeTab === "description"
               ? product.description || "Aucune description disponible."
               : activeTab === "ingredients"
-              ? "Informations sur les ingrédients non disponibles."
-              : `TVA applicable : ${product.tva}%\nPoids : ${product.weight ? `${product.weight}g` : "Non renseigné"}`}
+              ? product.description || "Informations sur les ingrédients non disponibles."
+              : `TVA applicable : ${product.tva ?? 5.5}%\nPoids : ${product.weight ? `${product.weight}g` : "Non renseigné"}`}
           </Text>
         </View>
 
@@ -275,35 +317,39 @@ export default function ProductDetailScreen() {
               showsHorizontalScrollIndicator={false}
               keyExtractor={(item) => item.id}
               contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  onPress={() => nav.push(`/product/${item.id}`)}
-                  style={{
-                    width: 140,
-                    backgroundColor: "white",
-                    borderRadius: 12,
-                    borderWidth: 1,
-                    borderColor: "#F3F4F6",
-                    overflow: "hidden",
-                  }}
-                >
-                  <View style={{ height: 100, backgroundColor: "#F9FAFB" }}>
-                    {item.images?.[0] ? (
-                      <Image source={{ uri: item.images[0] }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
-                    ) : (
-                      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-                        <Text style={{ fontSize: 30 }}>🍬</Text>
-                      </View>
-                    )}
-                  </View>
-                  <View style={{ padding: 8 }}>
-                    <Text style={{ fontSize: 12, fontWeight: "600", color: "#1E1E1E" }} numberOfLines={2}>{item.name}</Text>
-                    <Text style={{ color: "#E91E7B", fontSize: 13, fontWeight: "700", marginTop: 4 }}>
-                      {item.price.toFixed(2)} € HT
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              )}
+              renderItem={({ item }) => {
+                const simImage = getProductImage(item);
+                const simPrice = getProductPrice(item);
+                return (
+                  <TouchableOpacity
+                    onPress={() => nav.push(`/product/${item.id}`)}
+                    style={{
+                      width: 140,
+                      backgroundColor: "white",
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      borderColor: "#F3F4F6",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <View style={{ height: 100, backgroundColor: "#F9FAFB" }}>
+                      {simImage ? (
+                        <Image source={{ uri: simImage }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+                      ) : (
+                        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+                          <Text style={{ fontSize: 30 }}>🍬</Text>
+                        </View>
+                      )}
+                    </View>
+                    <View style={{ padding: 8 }}>
+                      <Text style={{ fontSize: 12, fontWeight: "600", color: "#1E1E1E" }} numberOfLines={2}>{item.name}</Text>
+                      <Text style={{ color: "#E91E7B", fontSize: 13, fontWeight: "700", marginTop: 4 }}>
+                        {simPrice.toFixed(2)} € HT
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              }}
             />
           </View>
         )}
@@ -356,10 +402,10 @@ export default function ProductDetailScreen() {
         {/* Bouton ajouter */}
         <TouchableOpacity
           onPress={handleAddToCart}
-          disabled={product.stock === 0}
+          disabled={product.inStock === false && product.stock === 0}
           style={{
             flex: 1,
-            backgroundColor: product.stock > 0 ? "#E91E7B" : "#9CA3AF",
+            backgroundColor: (product.inStock !== false || product.stock > 0) ? "#E91E7B" : "#9CA3AF",
             borderRadius: 14,
             height: 48,
             alignItems: "center",
@@ -367,8 +413,8 @@ export default function ProductDetailScreen() {
           }}
         >
           <Text style={{ color: "white", fontSize: 15, fontWeight: "700" }}>
-            {product.stock > 0
-              ? `Ajouter au panier — ${(product.price * quantity).toFixed(2)} € HT`
+            {(product.inStock !== false || product.stock > 0)
+              ? `Ajouter au panier — ${(priceHT * quantity).toFixed(2)} € HT`
               : "Rupture de stock"}
           </Text>
         </TouchableOpacity>

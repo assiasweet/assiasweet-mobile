@@ -1,5 +1,6 @@
 // ============================================================
 // Types partagés AssiaSweet Mobile
+// Structure basée sur l'API réelle de assiasweet.vercel.app
 // ============================================================
 
 // --- Auth ---
@@ -35,14 +36,14 @@ export type AuthUser =
   | { type: "staff"; data: StaffUser };
 
 // --- Products ---
+// L'API /api/categories retourne : { id, name, slug, imageUrl, isActive, description }
 export interface Category {
   id: string;
   name: string;
   slug: string;
-  description?: string;
-  image?: string;
-  parentId?: string;
-  sortOrder?: number;
+  description?: string | null;
+  imageUrl?: string;   // champ réel de l'API
+  image?: string;      // alias pour compatibilité
   isActive: boolean;
 }
 
@@ -54,35 +55,93 @@ export interface Brand {
   isActive: boolean;
 }
 
+// L'API /api/produits retourne :
+// { id, slug, name, brand (string), category (string slug), description,
+//   priceHT, priceTTC, tva, halal, isNew, isFeatured, inStock, discount,
+//   images (array vide), image (string URL), stock, minOrder, rating, reviews, variants }
 export interface Product {
   id: string;
   name: string;
   slug: string;
   description?: string;
-  price: number;
+
+  // Prix — l'API retourne priceHT et priceTTC
+  priceHT: number;
+  priceTTC?: number;
+  price?: number;       // alias pour compatibilité avec données démo
   tva: number;
+
+  // Stock
   stock: number;
+  inStock?: boolean;
+  minOrder?: number;
+
+  // Identifiants
   sku?: string;
   barcode?: string;
   weight?: number;
-  isHalal: boolean;
-  isVegan: boolean;
-  isSugarFree: boolean;
-  isNew: boolean;
-  isPromo: boolean;
-  images: string[];
-  category?: Category;
-  brand?: Brand;
-  status: "ACTIVE" | "INACTIVE" | "DRAFT";
+
+  // Flags — l'API retourne halal (pas isHalal), isNew, isFeatured
+  halal?: boolean;
+  isHalal?: boolean;    // alias pour données démo
+  isVegan?: boolean;
+  isSugarFree?: boolean;
+  isNew?: boolean;
+  isPromo?: boolean;
+  isFeatured?: boolean;
+  discount?: number;
+
+  // Images — l'API retourne image (string) et images (array souvent vide)
+  image?: string;       // champ principal de l'API réelle
+  images?: string[];    // array (souvent vide dans l'API réelle)
+
+  // Relations — l'API retourne brand et category comme strings (slug/nom)
+  category?: Category | string | null;
+  brand?: Brand | string | null;
+
+  status?: "ACTIVE" | "INACTIVE" | "DRAFT";
   vendor?: string;
-  trackStock: boolean;
+  trackStock?: boolean;
+  rating?: number;
+  reviews?: number;
+}
+
+// Helper pour obtenir l'image principale d'un produit
+export function getProductImage(product: Product): string | undefined {
+  if (product.image) return product.image;
+  if (product.images && product.images.length > 0) return product.images[0];
+  return undefined;
+}
+
+// Helper pour obtenir le prix HT d'un produit
+export function getProductPrice(product: Product): number {
+  return product.priceHT ?? product.price ?? 0;
+}
+
+// Helper pour obtenir le nom de la marque
+export function getProductBrand(product: Product): string | undefined {
+  if (!product.brand) return undefined;
+  if (typeof product.brand === "string") return product.brand;
+  return product.brand.name;
+}
+
+// Helper pour obtenir le nom de la catégorie
+export function getProductCategory(product: Product): string | undefined {
+  if (!product.category) return undefined;
+  if (typeof product.category === "string") return product.category;
+  return product.category.name;
+}
+
+// Helper pour savoir si un produit est halal
+export function isProductHalal(product: Product): boolean {
+  return product.halal === true || product.isHalal === true;
 }
 
 export interface ProductsResponse {
   products: Product[];
   total: number;
-  page: number;
-  totalPages: number;
+  page?: number;
+  totalPages?: number;
 }
 
 // --- Filters ---

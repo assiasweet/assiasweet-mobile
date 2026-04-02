@@ -17,6 +17,7 @@ import { getProducts, getCategories } from "@/lib/api";
 import { DEMO_PRODUCTS, DEMO_CATEGORIES } from "@/lib/demo-data";
 import { useCartStore } from "@/store/cart";
 import type { Product, Category, ProductFilters } from "@/lib/types";
+import { getProductImage, getProductPrice, getProductBrand, isProductHalal } from "@/lib/types";
 
 const nav = router as unknown as { push: (path: string) => void };
 
@@ -42,9 +43,9 @@ function ProductListCard({ product }: { product: Product }) {
       }}
     >
       <View style={{ width: 100, height: 100, backgroundColor: "#F9FAFB" }}>
-        {product.images?.[0] ? (
+        {getProductImage(product) ? (
           <Image
-            source={{ uri: product.images[0] }}
+            source={{ uri: getProductImage(product) }}
             style={{ width: "100%", height: "100%" }}
             resizeMode="cover"
           />
@@ -57,7 +58,7 @@ function ProductListCard({ product }: { product: Product }) {
       <View style={{ flex: 1, padding: 12, justifyContent: "space-between" }}>
         <View>
           <View style={{ flexDirection: "row", gap: 4, marginBottom: 4, flexWrap: "wrap" }}>
-            {product.isHalal && (
+            {isProductHalal(product) && (
               <View style={{ backgroundColor: "#DCFCE7", borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 }}>
                 <Text style={{ color: "#16A34A", fontSize: 9, fontWeight: "700" }}>HALAL</Text>
               </View>
@@ -67,15 +68,15 @@ function ProductListCard({ product }: { product: Product }) {
                 <Text style={{ color: "#2563EB", fontSize: 9, fontWeight: "700" }}>NOUVEAU</Text>
               </View>
             )}
-            {product.isPromo && (
+            {(product.isPromo || (product.discount && product.discount > 0)) && (
               <View style={{ backgroundColor: "#FEF3C7", borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 }}>
                 <Text style={{ color: "#D97706", fontSize: 9, fontWeight: "700" }}>PROMO</Text>
               </View>
             )}
           </View>
-          {product.brand && (
+          {getProductBrand(product) && (
             <Text style={{ color: "#9CA3AF", fontSize: 11 }} numberOfLines={1}>
-              {product.brand.name}
+              {getProductBrand(product)}
             </Text>
           )}
           <Text style={{ color: "#1E1E1E", fontSize: 14, fontWeight: "600", lineHeight: 19 }} numberOfLines={2}>
@@ -90,10 +91,10 @@ function ProductListCard({ product }: { product: Product }) {
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
           <View>
             <Text style={{ color: "#E91E7B", fontSize: 16, fontWeight: "800" }}>
-              {product.price.toFixed(2)} € HT
+              {getProductPrice(product).toFixed(2)} € HT
             </Text>
             <Text style={{ color: "#9CA3AF", fontSize: 11 }}>
-              {(product.price * (1 + product.tva / 100)).toFixed(2)} € TTC
+              {(getProductPrice(product) * (1 + (product.tva ?? 5.5) / 100)).toFixed(2)} € TTC
             </Text>
           </View>
           <TouchableOpacity

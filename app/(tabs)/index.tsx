@@ -17,6 +17,7 @@ import { router } from "expo-router";
 import { getProducts, getCategories, getSliders } from "@/lib/api";
 import { DEMO_PRODUCTS, DEMO_CATEGORIES, DEMO_SLIDERS } from "@/lib/demo-data";
 import type { Product, Category, Slider } from "@/lib/types";
+import { getProductImage, getProductPrice, getProductBrand, getProductCategory, isProductHalal } from "@/lib/types";
 
 export default function HomeScreen() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -86,7 +87,11 @@ export default function HomeScreen() {
       result = result.filter((p) => p.name.toLowerCase().includes(q));
     }
     if (selectedCat) {
-      result = result.filter((p) => p.category?.id === selectedCat || p.category?.name === selectedCat);
+      result = result.filter((p) => {
+        if (!p.category) return false;
+        if (typeof p.category === "string") return p.category === selectedCat;
+        return p.category.id === selectedCat || p.category.slug === selectedCat;
+      });
     }
     setFiltered(result);
   }, [search, selectedCat, products]);
@@ -102,21 +107,21 @@ export default function HomeScreen() {
       onPress={() => router.push(`/product/${item.id}` as never)}
       activeOpacity={0.8}
     >
-      {item.images?.[0] ? (
-        <Image source={{ uri: item.images[0] }} style={styles.image} resizeMode="cover" />
+      {(() => { const img = getProductImage(item); return img ? (
+        <Image source={{ uri: img }} style={styles.image} resizeMode="cover" />
       ) : (
         <View style={[styles.image, styles.imagePlaceholder]}>
           <Text style={{ fontSize: 36 }}>🍬</Text>
         </View>
-      )}
+      ); })()}
       <View style={styles.cardInfo}>
-        {item.brand && <Text style={styles.brand}>{item.brand.name}</Text>}
+        {getProductBrand(item) && <Text style={styles.brand}>{getProductBrand(item)}</Text>}
         <Text style={styles.name} numberOfLines={2}>{item.name}</Text>
-        <Text style={styles.price}>{item.price?.toFixed(2)} € HT</Text>
+        <Text style={styles.price}>{getProductPrice(item).toFixed(2)} € HT</Text>
         <View style={styles.badges}>
-          {item.isHalal && <Text style={[styles.badge, { backgroundColor: "#22C55E" }]}>Halal</Text>}
+          {isProductHalal(item) && <Text style={[styles.badge, { backgroundColor: "#22C55E" }]}>Halal</Text>}
           {item.isNew && <Text style={[styles.badge, { backgroundColor: "#E91E7B" }]}>Nouveau</Text>}
-          {item.isPromo && <Text style={[styles.badge, { backgroundColor: "#F59E0B" }]}>Promo</Text>}
+          {(item.isPromo || (item.discount && item.discount > 0)) && <Text style={[styles.badge, { backgroundColor: "#F59E0B" }]}>Promo</Text>}
         </View>
       </View>
     </TouchableOpacity>
