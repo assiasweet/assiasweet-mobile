@@ -34,33 +34,40 @@ const BRANDS = [
   { name: "Lutti", color: "#E0F7FA", emoji: "🍡" },
 ];
 
-// ─── Bannières slider ─────────────────────────────────────────────────────────
-const BANNERS = [
-  {
-    id: "1",
-    title: "Nouveautés Printemps 2026",
-    subtitle: "Découvrez les nouvelles confiseries de saison",
-    cta: "Voir les nouveautés",
-    bg: ["#E91E7B", "#C2185B"],
-    emoji: "🌸",
-  },
-  {
-    id: "2",
-    title: "Livraison 24-48h",
-    subtitle: "Commandez avant 14h, expédié le jour même",
-    cta: "Commander maintenant",
-    bg: ["#9C27B0", "#7B1FA2"],
-    emoji: "🚚",
-  },
-  {
-    id: "3",
-    title: "Retrait gratuit Roissy",
-    subtitle: "Venez récupérer votre commande directement",
-    cta: "En savoir plus",
-    bg: ["#1565C0", "#0D47A1"],
-    emoji: "📦",
-  },
-];
+// ─── Bannières slider basées sur les catégories réelles ───────────────────────
+type Banner = {
+  id: string;
+  title: string;
+  subtitle: string;
+  cta: string;
+  imageUrl?: string;
+  bg: string;
+};
+
+function buildBannersFromCategories(cats: Category[]): Banner[] {
+  const map: Record<string, { title: string; subtitle: string; cta: string; bg: string }> = {
+    "bonbon-en-vrac": { title: "Bonbons en Vrac", subtitle: "Achetez au poids, prix grossiste HT", cta: "Voir les bonbons", bg: "#E91E7B" },
+    "chewing-gum": { title: "Chewing-Gums", subtitle: "Toutes les marques : Malabar, Mentos, Lutti…", cta: "Voir les chewing-gums", bg: "#9C27B0" },
+    "sucettes": { title: "Sucettes", subtitle: "Sucettes en vrac et en présentoir", cta: "Voir les sucettes", bg: "#E65100" },
+    "snacking": { title: "Snacking", subtitle: "Chips, popcorn, biscuits salés en gros", cta: "Voir le snacking", bg: "#1565C0" },
+    "promotions": { title: "Promotions", subtitle: "Déstockage et offres spéciales en cours", cta: "Voir les promos", bg: "#2E7D32" },
+    "gadgets-sprays": { title: "Gadgets & Sprays", subtitle: "Confiseries originales et gadgets sucrés", cta: "Découvrir", bg: "#6A1B9A" },
+    "jumbos-ceintures": { title: "Jumbos & Ceintures", subtitle: "Bonbons géants et ceintures acidulées", cta: "Voir les jumbos", bg: "#AD1457" },
+    "destockage": { title: "Déstockage", subtitle: "Produits à prix cassés, stocks limités", cta: "Profiter des offres", bg: "#BF360C" },
+    "tubos-presentoirs": { title: "Tubos & Présentoirs", subtitle: "Solutions clé en main pour vos rayons", cta: "Voir les présentoirs", bg: "#00695C" },
+  };
+  return cats
+    .filter((c) => c.imageUrl)
+    .slice(0, 5)
+    .map((c) => ({
+      id: c.id,
+      title: map[c.slug]?.title ?? c.name,
+      subtitle: map[c.slug]?.subtitle ?? "",
+      cta: map[c.slug]?.cta ?? "Voir les produits",
+      imageUrl: c.imageUrl,
+      bg: map[c.slug]?.bg ?? "#E91E7B",
+    }));
+}
 
 // ─── Composant Card Produit ───────────────────────────────────────────────────
 function ProductCard({ item, onAdd }: { item: Product; onAdd: (p: Product) => void }) {
@@ -139,6 +146,7 @@ export default function HomeScreen() {
   const cartCount = useCartStore((s) => s.items.reduce((a, i) => a + i.quantity, 0));
 
   const [categories, setCategories] = useState<Category[]>([]);
+  const [banners, setBanners] = useState<Banner[]>([]);
   const [bestsellers, setBestsellers] = useState<Product[]>([]);
   const [newProducts, setNewProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -156,7 +164,10 @@ export default function HomeScreen() {
         fetch("https://assiasweet.vercel.app/api/produits?limit=40").then((r) => r.json()),
       ]);
 
-      if (catRes?.categories) setCategories(catRes.categories);
+      if (catRes?.categories) {
+        setCategories(catRes.categories);
+        setBanners(buildBannersFromCategories(catRes.categories));
+      }
 
       const all: Product[] = prodRes?.products ?? prodRes?.data ?? (Array.isArray(prodRes) ? prodRes : []);
       if (all.length > 0) {
@@ -181,15 +192,16 @@ export default function HomeScreen() {
 
   // Auto-défilement bannière
   useEffect(() => {
+    if (banners.length === 0) return;
     autoSlide.current = setInterval(() => {
       setBannerIdx((prev) => {
-        const next = (prev + 1) % BANNERS.length;
+        const next = (prev + 1) % banners.length;
         bannerRef.current?.scrollToIndex({ index: next, animated: true });
         return next;
       });
     }, 3500);
     return () => { if (autoSlide.current) clearInterval(autoSlide.current); };
-  }, []);
+  }, [banners.length]);
 
   const handleSearch = () => {
     if (search.trim()) {
@@ -262,39 +274,54 @@ export default function HomeScreen() {
 
         {/* ── SLIDER BANNIÈRES ── */}
         <View style={{ marginBottom: 24 }}>
-          <FlatList
-            ref={bannerRef}
-            data={BANNERS}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={(b) => b.id}
-            onMomentumScrollEnd={(e) => {
-              const idx = Math.round(e.nativeEvent.contentOffset.x / (W - 32));
-              setBannerIdx(idx);
-            }}
-            contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
-            renderItem={({ item: b }) => (
-              <View style={[styles.banner, { width: W - 32, backgroundColor: b.bg[0] }]}>
-                <View style={styles.bannerContent}>
-                  <Text style={styles.bannerEmoji}>{b.emoji}</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.bannerTitle}>{b.title}</Text>
-                    <Text style={styles.bannerSubtitle}>{b.subtitle}</Text>
-                    <TouchableOpacity style={styles.bannerCta} activeOpacity={0.8}>
-                      <Text style={[styles.bannerCtaText, { color: b.bg[0] }]}>{b.cta}</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
+          {banners.length > 0 ? (
+            <>
+              <FlatList
+                ref={bannerRef}
+                data={banners}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={(b) => b.id}
+                onMomentumScrollEnd={(e) => {
+                  const idx = Math.round(e.nativeEvent.contentOffset.x / (W - 32));
+                  setBannerIdx(idx);
+                }}
+                contentContainerStyle={{ paddingHorizontal: 16 }}
+                ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
+                renderItem={({ item: b }) => (
+                  <TouchableOpacity
+                    style={[styles.banner, { width: W - 32 }]}
+                    activeOpacity={0.95}
+                    onPress={() => router.push(`/(tabs)/catalog?cat=${b.id}` as never)}
+                  >
+                    {b.imageUrl && (
+                      <Image source={{ uri: b.imageUrl }} style={styles.bannerBgImg} resizeMode="cover" />
+                    )}
+                    <View style={[styles.bannerOverlay, { backgroundColor: b.bg + "CC" }]} />
+                    <View style={styles.bannerContent}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.bannerTitle}>{b.title}</Text>
+                        {b.subtitle ? <Text style={styles.bannerSubtitle}>{b.subtitle}</Text> : null}
+                        <TouchableOpacity style={styles.bannerCta} activeOpacity={0.8}>
+                          <Text style={[styles.bannerCtaText, { color: b.bg }]}>{b.cta}</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                )}
+              />
+              <View style={styles.dots}>
+                {banners.map((_, i) => (
+                  <View key={i} style={[styles.dot, i === bannerIdx && styles.dotActive]} />
+                ))}
               </View>
-            )}
-          />
-          {/* Dots */}
-          <View style={styles.dots}>
-            {BANNERS.map((_, i) => (
-              <View key={i} style={[styles.dot, i === bannerIdx && styles.dotActive]} />
-            ))}
-          </View>
+            </>
+          ) : (
+            <View style={{ height: 130, alignItems: "center", justifyContent: "center" }}>
+              <ActivityIndicator color="#E91E7B" />
+            </View>
+          )}
         </View>
 
         {/* ── CATÉGORIES ── */}
@@ -351,7 +378,8 @@ export default function HomeScreen() {
               horizontal
               showsHorizontalScrollIndicator={false}
               keyExtractor={(p) => p.id}
-              contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
+              contentContainerStyle={{ paddingHorizontal: 16 }}
+              ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
               renderItem={({ item }) => (
                 <View style={{ width: CARD_W }}>
                   <ProductCard item={item} onAdd={handleAddToCart} />
@@ -393,7 +421,8 @@ export default function HomeScreen() {
               horizontal
               showsHorizontalScrollIndicator={false}
               keyExtractor={(p) => p.id}
-              contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
+              contentContainerStyle={{ paddingHorizontal: 16 }}
+              ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
               renderItem={({ item }) => (
                 <View style={{ width: CARD_W }}>
                   <ProductCard item={item} onAdd={handleAddToCart} />
@@ -464,17 +493,23 @@ const styles = StyleSheet.create({
   // Bannière
   banner: {
     borderRadius: 16, overflow: "hidden",
-    paddingHorizontal: 20, paddingVertical: 20,
-    minHeight: 130,
-    justifyContent: "center",
+    minHeight: 150,
+    justifyContent: "flex-end",
+    position: "relative",
   },
-  bannerContent: { flexDirection: "row", alignItems: "center", gap: 16 },
-  bannerEmoji: { fontSize: 48 },
-  bannerTitle: { fontSize: 17, fontWeight: "800", color: "#fff", lineHeight: 22 },
-  bannerSubtitle: { fontSize: 13, color: "rgba(255,255,255,0.85)", marginTop: 4, lineHeight: 18 },
+  bannerBgImg: {
+    position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+    width: "100%", height: "100%",
+  },
+  bannerOverlay: {
+    position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+  },
+  bannerContent: { padding: 18, zIndex: 1 },
+  bannerTitle: { fontSize: 20, fontWeight: "800", color: "#fff", lineHeight: 26 },
+  bannerSubtitle: { fontSize: 13, color: "rgba(255,255,255,0.9)", marginTop: 4, lineHeight: 18 },
   bannerCta: {
-    marginTop: 10, backgroundColor: "#fff",
-    borderRadius: 20, paddingHorizontal: 14, paddingVertical: 6,
+    marginTop: 12, backgroundColor: "#fff",
+    borderRadius: 20, paddingHorizontal: 16, paddingVertical: 7,
     alignSelf: "flex-start",
   },
   bannerCtaText: { fontSize: 12, fontWeight: "700" },
@@ -491,7 +526,8 @@ const styles = StyleSheet.create({
   seeAll: { fontSize: 13, fontWeight: "600", color: "#E91E7B" },
 
   // Catégories
-  catScroll: { paddingHorizontal: 16, gap: 12 },
+  catScroll: { paddingHorizontal: 16, paddingRight: 16 },
+  catItemGap: { width: 12 },
   catItem: { alignItems: "center", width: 72 },
   catCircle: {
     width: 60, height: 60, borderRadius: 30,
