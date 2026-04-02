@@ -1,300 +1,76 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
-  ScrollView,
   FlatList,
-  TouchableOpacity,
   Image,
-  TextInput,
+  StyleSheet,
   ActivityIndicator,
-  Dimensions,
+  TextInput,
+  TouchableOpacity,
+  Platform,
+  ScrollView,
   RefreshControl,
 } from "react-native";
-import { router } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
-import { useAuthStore } from "@/store/auth";
-import { getSliders, getCategories, getProducts } from "@/lib/api";
-import type { Slider, Category, Product } from "@/lib/types";
-
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const SLIDER_HEIGHT = 200;
-
-const nav = router as unknown as {
-  push: (path: string, params?: object) => void;
-  replace: (path: string) => void;
-};
-
-function SliderBanner({ sliders }: { sliders: Slider[] }) {
-  const [current, setCurrent] = useState(0);
-  const flatRef = useRef<FlatList>(null);
-
-  useEffect(() => {
-    if (sliders.length <= 1) return;
-    const timer = setInterval(() => {
-      const next = (current + 1) % sliders.length;
-      setCurrent(next);
-      flatRef.current?.scrollToIndex({ index: next, animated: true });
-    }, 4000);
-    return () => clearInterval(timer);
-  }, [current, sliders.length]);
-
-  if (!sliders.length) {
-    return (
-      <View
-        style={{
-          height: SLIDER_HEIGHT,
-          backgroundColor: "#FCE4F0",
-          alignItems: "center",
-          justifyContent: "center",
-          marginHorizontal: 16,
-          borderRadius: 16,
-        }}
-      >
-        <Text style={{ color: "#E91E7B", fontSize: 18, fontWeight: "700" }}>
-          🍬 Bienvenue sur AssiaSweet
-        </Text>
-        <Text style={{ color: "#6B7280", marginTop: 4 }}>
-          Grossiste B2B en confiseries
-        </Text>
-      </View>
-    );
-  }
-
-  return (
-    <View style={{ marginHorizontal: 16 }}>
-      <FlatList
-        ref={flatRef}
-        data={sliders}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        keyExtractor={(item) => item.id}
-        onMomentumScrollEnd={(e) => {
-          const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
-          setCurrent(index);
-        }}
-        renderItem={({ item }) => (
-          <View
-            style={{
-              width: SCREEN_WIDTH - 32,
-              height: SLIDER_HEIGHT,
-              borderRadius: 16,
-              overflow: "hidden",
-              backgroundColor: "#FCE4F0",
-            }}
-          >
-            {item.image_url ? (
-              <Image
-                source={{ uri: item.image_url }}
-                style={{ width: "100%", height: "100%" }}
-                resizeMode="cover"
-              />
-            ) : null}
-            {(item.title || item.subtitle) && (
-              <View
-                style={{
-                  position: "absolute",
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  padding: 16,
-                  backgroundColor: "rgba(0,0,0,0.4)",
-                }}
-              >
-                {item.title && (
-                  <Text style={{ color: "white", fontSize: 18, fontWeight: "800" }}>
-                    {item.title}
-                  </Text>
-                )}
-                {item.subtitle && (
-                  <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, marginTop: 2 }}>
-                    {item.subtitle}
-                  </Text>
-                )}
-              </View>
-            )}
-          </View>
-        )}
-      />
-      {sliders.length > 1 && (
-        <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 8, gap: 6 }}>
-          {sliders.map((_, i) => (
-            <View
-              key={i}
-              style={{
-                width: i === current ? 20 : 6,
-                height: 6,
-                borderRadius: 3,
-                backgroundColor: i === current ? "#E91E7B" : "#E5E7EB",
-              }}
-            />
-          ))}
-        </View>
-      )}
-    </View>
-  );
-}
-
-function ProductCard({ product }: { product: Product }) {
-  return (
-    <TouchableOpacity
-      onPress={() => nav.push(`/product/${product.id}`)}
-      style={{
-        width: 160,
-        backgroundColor: "white",
-        borderRadius: 14,
-        borderWidth: 1,
-        borderColor: "#F3F4F6",
-        overflow: "hidden",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.06,
-        shadowRadius: 4,
-        elevation: 2,
-      }}
-    >
-      <View style={{ height: 130, backgroundColor: "#F9FAFB", position: "relative" }}>
-        {product.images?.[0] ? (
-          <Image
-            source={{ uri: product.images[0] }}
-            style={{ width: "100%", height: "100%" }}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ fontSize: 40 }}>🍬</Text>
-          </View>
-        )}
-        <View style={{ position: "absolute", top: 6, left: 6, flexDirection: "row", gap: 4 }}>
-          {product.isHalal && (
-            <View style={{ backgroundColor: "#22C55E", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
-              <Text style={{ color: "white", fontSize: 9, fontWeight: "700" }}>HALAL</Text>
-            </View>
-          )}
-          {product.isNew && (
-            <View style={{ backgroundColor: "#3B82F6", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
-              <Text style={{ color: "white", fontSize: 9, fontWeight: "700" }}>NOUVEAU</Text>
-            </View>
-          )}
-          {product.isPromo && (
-            <View style={{ backgroundColor: "#F59E0B", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
-              <Text style={{ color: "white", fontSize: 9, fontWeight: "700" }}>PROMO</Text>
-            </View>
-          )}
-        </View>
-      </View>
-      <View style={{ padding: 10 }}>
-        {product.brand && (
-          <Text style={{ color: "#9CA3AF", fontSize: 11, marginBottom: 2 }} numberOfLines={1}>
-            {product.brand.name}
-          </Text>
-        )}
-        <Text style={{ color: "#1E1E1E", fontSize: 13, fontWeight: "600", lineHeight: 18 }} numberOfLines={2}>
-          {product.name}
-        </Text>
-        <Text style={{ color: "#E91E7B", fontSize: 15, fontWeight: "800", marginTop: 6 }}>
-          {product.price.toFixed(2)} € HT
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
-}
-
-function CategoryCard({ category }: { category: Category }) {
-  return (
-    <TouchableOpacity
-      onPress={() => nav.push("/(tabs)/catalog", { categoryId: category.id })}
-      style={{
-        width: 90,
-        alignItems: "center",
-        gap: 6,
-      }}
-    >
-      <View
-        style={{
-          width: 70,
-          height: 70,
-          borderRadius: 20,
-          backgroundColor: "#FCE4F0",
-          alignItems: "center",
-          justifyContent: "center",
-          overflow: "hidden",
-        }}
-      >
-        {category.image ? (
-          <Image
-            source={{ uri: category.image }}
-            style={{ width: 50, height: 50 }}
-            resizeMode="contain"
-          />
-        ) : (
-          <Text style={{ fontSize: 28 }}>🍭</Text>
-        )}
-      </View>
-      <Text
-        style={{
-          fontSize: 11,
-          color: "#1E1E1E",
-          fontWeight: "600",
-          textAlign: "center",
-          lineHeight: 14,
-        }}
-        numberOfLines={2}
-      >
-        {category.name}
-      </Text>
-    </TouchableOpacity>
-  );
-}
-
-function SectionHeader({ title, onSeeAll }: { title: string; onSeeAll?: () => void }) {
-  return (
-    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, marginBottom: 12 }}>
-      <Text style={{ fontSize: 18, fontWeight: "800", color: "#1E1E1E" }}>{title}</Text>
-      {onSeeAll && (
-        <TouchableOpacity onPress={onSeeAll}>
-          <Text style={{ color: "#E91E7B", fontSize: 14, fontWeight: "600" }}>Voir tout</Text>
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-}
+import { router } from "expo-router";
+import { getProducts, getCategories, getSliders } from "@/lib/api";
+import { DEMO_PRODUCTS, DEMO_CATEGORIES, DEMO_SLIDERS } from "@/lib/demo-data";
+import type { Product, Category, Slider } from "@/lib/types";
 
 export default function HomeScreen() {
-  const auth = useAuthStore((s) => s.auth);
-  const [sliders, setSliders] = useState<Slider[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [bestSellers, setBestSellers] = useState<Product[]>([]);
-  const [newProducts, setNewProducts] = useState<Product[]>([]);
-  const [promoProducts, setPromoProducts] = useState<Product[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [sliders, setSliders] = useState<Slider[]>([]);
+  const [filtered, setFiltered] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
-
-  const customerName =
-    auth.status === "customer" ? auth.customer.firstName : "";
+  const [selectedCat, setSelectedCat] = useState<string | null>(null);
+  const [total, setTotal] = useState(0);
+  const [isDemo, setIsDemo] = useState(false);
 
   const loadData = async () => {
     try {
-      const [slidersData, categoriesData, bestData, newData, promoData] =
-        await Promise.all([
-          getSliders().catch(() => []),
-          getCategories().catch(() => []),
-          getProducts({ limit: 10, sort: "name_asc" }).catch(() => ({ products: [] })),
-          getProducts({ new: true, limit: 10 }).catch(() => ({ products: [] })),
-          getProducts({ promo: true, limit: 10 }).catch(() => ({ products: [] })),
-        ]);
+      // Load categories
+      const catResp = await getCategories();
+      const cats = catResp.categories ?? [];
+      setCategories(cats.length > 0 ? cats : DEMO_CATEGORIES);
 
-      setSliders(slidersData);
-      setCategories(categoriesData.filter((c) => c.isActive).slice(0, 12));
-      setBestSellers(bestData.products.slice(0, 10));
-      setNewProducts(newData.products.slice(0, 10));
-      setPromoProducts(promoData.products.slice(0, 10));
+      // Load sliders
+      try {
+        const sliderResp = await getSliders();
+        const sl = sliderResp.sliders ?? [];
+        setSliders(sl.length > 0 ? sl : DEMO_SLIDERS);
+      } catch {
+        setSliders(DEMO_SLIDERS);
+      }
+
+      // Load products
+      const prodResp = await getProducts({ page: 1, limit: 20 });
+      const prods = prodResp.products ?? [];
+      const t = prodResp.total ?? prods.length;
+      if (prods.length > 0) {
+        setProducts(prods);
+        setFiltered(prods);
+        setTotal(t);
+        setIsDemo(false);
+      } else {
+        setProducts(DEMO_PRODUCTS);
+        setFiltered(DEMO_PRODUCTS);
+        setTotal(DEMO_PRODUCTS.length);
+        setIsDemo(true);
+      }
     } catch {
-      // ignore
+      // Fallback to demo data (e.g. CORS on web preview)
+      setCategories(DEMO_CATEGORIES);
+      setSliders(DEMO_SLIDERS);
+      setProducts(DEMO_PRODUCTS);
+      setFiltered(DEMO_PRODUCTS);
+      setTotal(DEMO_PRODUCTS.length);
+      setIsDemo(true);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
       setRefreshing(false);
     }
   };
@@ -303,163 +79,373 @@ export default function HomeScreen() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    let result = products;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter((p) => p.name.toLowerCase().includes(q));
+    }
+    if (selectedCat) {
+      result = result.filter((p) => p.category?.id === selectedCat || p.category?.name === selectedCat);
+    }
+    setFiltered(result);
+  }, [search, selectedCat, products]);
+
   const handleRefresh = () => {
     setRefreshing(true);
     loadData();
   };
 
-  const handleSearch = () => {
-    if (search.trim()) {
-      nav.push("/(tabs)/catalog", { search: search.trim() });
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <ScreenContainer className="items-center justify-center">
-        <ActivityIndicator size="large" color="#E91E7B" />
-      </ScreenContainer>
-    );
-  }
+  const renderProduct = ({ item }: { item: Product }) => (
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => router.push(`/product/${item.id}` as never)}
+      activeOpacity={0.8}
+    >
+      {item.images?.[0] ? (
+        <Image source={{ uri: item.images[0] }} style={styles.image} resizeMode="cover" />
+      ) : (
+        <View style={[styles.image, styles.imagePlaceholder]}>
+          <Text style={{ fontSize: 36 }}>🍬</Text>
+        </View>
+      )}
+      <View style={styles.cardInfo}>
+        {item.brand && <Text style={styles.brand}>{item.brand.name}</Text>}
+        <Text style={styles.name} numberOfLines={2}>{item.name}</Text>
+        <Text style={styles.price}>{item.price?.toFixed(2)} € HT</Text>
+        <View style={styles.badges}>
+          {item.isHalal && <Text style={[styles.badge, { backgroundColor: "#22C55E" }]}>Halal</Text>}
+          {item.isNew && <Text style={[styles.badge, { backgroundColor: "#E91E7B" }]}>Nouveau</Text>}
+          {item.isPromo && <Text style={[styles.badge, { backgroundColor: "#F59E0B" }]}>Promo</Text>}
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
     <ScreenContainer>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#E91E7B" />
-        }
-      >
-        {/* Header */}
-        <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16 }}>
-          <Text style={{ fontSize: 13, color: "#9CA3AF" }}>Bonjour{customerName ? ` ${customerName}` : ""} 👋</Text>
-          <Text style={{ fontSize: 22, fontWeight: "800", color: "#1E1E1E", marginTop: 2 }}>
-            AssiaSweet
-          </Text>
-        </View>
-
-        {/* Barre de recherche */}
-        <View style={{ marginHorizontal: 16, marginBottom: 20 }}>
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              backgroundColor: "#F3F4F6",
-              borderRadius: 14,
-              paddingHorizontal: 14,
-              paddingVertical: 12,
-              gap: 10,
-            }}
-          >
-            <Text style={{ fontSize: 18, color: "#9CA3AF" }}>🔍</Text>
-            <TextInput
-              value={search}
-              onChangeText={setSearch}
-              placeholder="Rechercher un produit, une marque..."
-              placeholderTextColor="#9CA3AF"
-              returnKeyType="search"
-              onSubmitEditing={handleSearch}
-              style={{ flex: 1, fontSize: 15, color: "#1E1E1E" }}
-            />
-          </View>
-        </View>
-
-        {/* Sliders */}
-        <View style={{ marginBottom: 24 }}>
-          <SliderBanner sliders={sliders} />
-        </View>
-
-        {/* Catégories */}
-        {categories.length > 0 && (
-          <View style={{ marginBottom: 28 }}>
-            <SectionHeader
-              title="Catégories"
-              onSeeAll={() => nav.push("/(tabs)/catalog")}
-            />
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
-            >
-              {categories.map((cat) => (
-                <CategoryCard key={cat.id} category={cat} />
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* Best-sellers */}
-        {bestSellers.length > 0 && (
-          <View style={{ marginBottom: 28 }}>
-            <SectionHeader
-              title="⭐ Best-sellers"
-              onSeeAll={() => nav.push("/(tabs)/catalog")}
-            />
-            <FlatList
-              data={bestSellers}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
-              renderItem={({ item }) => <ProductCard product={item} />}
-            />
-          </View>
-        )}
-
-        {/* Nouveautés */}
-        {newProducts.length > 0 && (
-          <View style={{ marginBottom: 28 }}>
-            <SectionHeader
-              title="🆕 Nouveautés"
-              onSeeAll={() => nav.push("/(tabs)/catalog", { filter: "new" })}
-            />
-            <FlatList
-              data={newProducts}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
-              renderItem={({ item }) => <ProductCard product={item} />}
-            />
-          </View>
-        )}
-
-        {/* Promotions */}
-        {promoProducts.length > 0 && (
-          <View style={{ marginBottom: 28 }}>
-            <SectionHeader
-              title="🏷️ Promotions"
-              onSeeAll={() => nav.push("/(tabs)/catalog", { filter: "promo" })}
-            />
-            <FlatList
-              data={promoProducts}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}
-              renderItem={({ item }) => <ProductCard product={item} />}
-            />
-          </View>
-        )}
-
-        {/* Footer info */}
-        <View
-          style={{
-            margin: 16,
-            padding: 16,
-            backgroundColor: "#FCE4F0",
-            borderRadius: 16,
-            marginBottom: 32,
-          }}
+      {/* Header */}
+      <View style={styles.header}>
+        <Image
+          source={require("@/assets/images/icon.png")}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        <Text style={styles.headerTitle}>AssiaSweet</Text>
+        <TouchableOpacity
+          style={styles.loginBtn}
+          onPress={() => router.push("/(auth)/login" as never)}
         >
-          <Text style={{ fontSize: 14, fontWeight: "700", color: "#E91E7B", marginBottom: 4 }}>
-            📦 Commande minimum : 100€ HT
-          </Text>
-          <Text style={{ fontSize: 13, color: "#6B7280" }}>
-            Livraison GLS 24-48h · Retrait à Roissy-en-France
+          <Text style={styles.loginBtnText}>Connexion</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Search */}
+      <View style={styles.searchContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Rechercher un produit..."
+          placeholderTextColor="#999"
+          value={search}
+          onChangeText={setSearch}
+          returnKeyType="search"
+        />
+      </View>
+
+      {/* Demo banner */}
+      {isDemo && !loading && (
+        <View style={styles.demoBanner}>
+          <Text style={styles.demoBannerText}>
+            Mode aperçu — données de démonstration (API disponible sur mobile natif)
           </Text>
         </View>
-      </ScrollView>
+      )}
+
+      {loading ? (
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color="#E91E7B" />
+          <Text style={styles.loadingText}>Chargement du catalogue...</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={filtered}
+          keyExtractor={(item) => item.id}
+          renderItem={renderProduct}
+          numColumns={2}
+          columnWrapperStyle={styles.row2}
+          contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#E91E7B" />
+          }
+          ListHeaderComponent={
+            <>
+              {/* Sliders */}
+              {sliders.length > 0 && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.sliderScroll}
+                  contentContainerStyle={styles.sliderContent}
+                >
+                  {sliders.map((s) => (
+                    <View key={s.id} style={styles.sliderCard}>
+                      <Image source={{ uri: s.image_url }} style={styles.sliderImage} resizeMode="cover" />
+                      <View style={styles.sliderOverlay}>
+                        <Text style={styles.sliderTitle}>{s.title}</Text>
+                        {s.subtitle && <Text style={styles.sliderSub}>{s.subtitle}</Text>}
+                      </View>
+                    </View>
+                  ))}
+                </ScrollView>
+              )}
+
+              {/* Categories */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.catScroll}
+                contentContainerStyle={styles.catContent}
+              >
+                <TouchableOpacity
+                  style={[styles.catChip, !selectedCat && styles.catChipActive]}
+                  onPress={() => setSelectedCat(null)}
+                >
+                  <Text style={[styles.catChipText, !selectedCat && styles.catChipTextActive]}>Tous</Text>
+                </TouchableOpacity>
+                {categories.map((cat) => (
+                  <TouchableOpacity
+                    key={cat.id}
+                    style={[styles.catChip, selectedCat === cat.id && styles.catChipActive]}
+                    onPress={() => setSelectedCat(cat.id)}
+                  >
+                    <Text style={[styles.catChipText, selectedCat === cat.id && styles.catChipTextActive]}>
+                      {cat.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+
+              {/* Stats */}
+              <Text style={styles.stats}>
+                {filtered.length} produit{filtered.length > 1 ? "s" : ""} sur {total} au total
+              </Text>
+            </>
+          }
+          ListEmptyComponent={
+            <View style={styles.center}>
+              <Text style={{ color: "#687076", fontSize: 15 }}>Aucun produit trouvé</Text>
+            </View>
+          }
+        />
+      )}
     </ScreenContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#E91E7B",
+    gap: 8,
+  },
+  logo: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+  },
+  headerTitle: {
+    flex: 1,
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#fff",
+  },
+  loginBtn: {
+    borderWidth: 1.5,
+    borderColor: "#fff",
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  loginBtnText: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  searchInput: {
+    backgroundColor: "#f5f5f5",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: Platform.OS === "ios" ? 10 : 8,
+    fontSize: 15,
+    color: "#11181C",
+  },
+  demoBanner: {
+    backgroundColor: "#FEF3C7",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#FDE68A",
+  },
+  demoBannerText: {
+    fontSize: 12,
+    color: "#92400E",
+    textAlign: "center",
+  },
+  sliderScroll: {
+    marginBottom: 12,
+  },
+  sliderContent: {
+    paddingHorizontal: 8,
+    gap: 10,
+  },
+  sliderCard: {
+    width: 280,
+    height: 140,
+    borderRadius: 14,
+    overflow: "hidden",
+    position: "relative",
+  },
+  sliderImage: {
+    width: "100%",
+    height: "100%",
+  },
+  sliderOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    padding: 12,
+  },
+  sliderTitle: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  sliderSub: {
+    color: "rgba(255,255,255,0.85)",
+    fontSize: 12,
+    marginTop: 2,
+  },
+  catScroll: {
+    marginBottom: 4,
+  },
+  catContent: {
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    gap: 8,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  catChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: "#E91E7B",
+    backgroundColor: "#fff",
+  },
+  catChipActive: {
+    backgroundColor: "#E91E7B",
+  },
+  catChipText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#E91E7B",
+  },
+  catChipTextActive: {
+    color: "#fff",
+  },
+  stats: {
+    paddingHorizontal: 8,
+    paddingBottom: 8,
+    fontSize: 12,
+    color: "#687076",
+  },
+  list: {
+    padding: 8,
+    paddingBottom: 100,
+  },
+  row2: {
+    gap: 8,
+    marginBottom: 8,
+  },
+  card: {
+    flex: 1,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#eee",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  image: {
+    width: "100%",
+    aspectRatio: 1,
+    backgroundColor: "#f9f9f9",
+  },
+  imagePlaceholder: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  cardInfo: {
+    padding: 10,
+    gap: 3,
+  },
+  brand: {
+    fontSize: 11,
+    color: "#9CA3AF",
+    fontWeight: "500",
+  },
+  name: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#11181C",
+    lineHeight: 18,
+  },
+  price: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#E91E7B",
+  },
+  badges: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 4,
+    marginTop: 2,
+  },
+  badge: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#fff",
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  center: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+    gap: 12,
+  },
+  loadingText: {
+    color: "#687076",
+    fontSize: 14,
+  },
+});

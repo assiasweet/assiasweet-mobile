@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  Image,
   Platform,
 } from "react-native";
 import { router } from "expo-router";
@@ -66,28 +67,21 @@ export default function LoginScreen() {
         >
           {/* Logo & titre */}
           <View style={{ alignItems: "center", paddingTop: 48, paddingBottom: 32, paddingHorizontal: 24 }}>
-            <View
+            <Image
+              source={require("@/assets/images/icon.png")}
               style={{
-                width: 88,
-                height: 88,
-                borderRadius: 22,
-                backgroundColor: "#E91E7B",
-                alignItems: "center",
-                justifyContent: "center",
-                marginBottom: 16,
+                width: 120,
+                height: 120,
+                borderRadius: 28,
+                marginBottom: 12,
                 shadowColor: "#E91E7B",
                 shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
-                shadowRadius: 8,
-                elevation: 8,
+                shadowOpacity: 0.2,
+                shadowRadius: 10,
               }}
-            >
-              <Text style={{ color: "white", fontSize: 36, fontWeight: "800" }}>A</Text>
-            </View>
-            <Text style={{ fontSize: 28, fontWeight: "800", color: "#1E1E1E", letterSpacing: -0.5 }}>
-              AssiaSweet
-            </Text>
-            <Text style={{ fontSize: 14, color: "#6B7280", marginTop: 4 }}>
+              resizeMode="contain"
+            />
+            <Text style={{ fontSize: 14, color: "#6B7280", marginTop: 2 }}>
               Grossiste B2B en confiseries
             </Text>
           </View>

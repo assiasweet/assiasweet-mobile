@@ -302,23 +302,27 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Product
   if (filters.sort) params.set("sort", filters.sort);
 
   const query = params.toString();
-  return request<ProductsResponse>(`/products${query ? `?${query}` : ""}`);
+  // Route correcte : /api/produits (pas /api/products)
+  return request<ProductsResponse>(`/produits${query ? `?${query}` : ""}`);
 }
 
 export async function getProduct(idOrSlug: string): Promise<Product> {
+  // Route : /api/produits/{slug}
   return request<Product>(`/produits/${idOrSlug}`);
 }
 
-export async function getCategories(): Promise<Category[]> {
-  return request<Category[]>("/categories");
+export async function getCategories(): Promise<{ categories: Category[] }> {
+  // L'API retourne { categories: [...] }
+  return request<{ categories: Category[] }>("/categories");
 }
 
 export async function searchProducts(q: string): Promise<Product[]> {
   return request<Product[]>(`/search?q=${encodeURIComponent(q)}`);
 }
 
-export async function getSliders(): Promise<Slider[]> {
-  return request<Slider[]>("/sliders/generate");
+export async function getSliders(): Promise<{ sliders: Slider[] }> {
+  // L'API retourne { sliders: [...], source: '...' }
+  return request<{ sliders: Slider[] }>("/sliders/generate");
 }
 
 export async function getSettings(): Promise<SiteSettings> {

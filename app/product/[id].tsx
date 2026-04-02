@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { getProduct, getProducts } from "@/lib/api";
+import { DEMO_PRODUCTS } from "@/lib/demo-data";
 import { useCartStore } from "@/store/cart";
 import type { Product } from "@/lib/types";
 
@@ -36,11 +37,16 @@ export default function ProductDetailScreen() {
       .then(async (p) => {
         setProduct(p);
         if (p.category?.id) {
-          const sim = await getProducts({ category: p.category.id, limit: 6 }).catch(() => ({ products: [] }));
+          const sim = await getProducts({ category: p.category.id, limit: 6 }).catch(() => ({ products: DEMO_PRODUCTS.filter(d => d.category?.id === p.category?.id), total: 0, page: 1, totalPages: 1 }));
           setSimilar(sim.products.filter((s) => s.id !== p.id).slice(0, 5));
         }
       })
-      .catch(() => Alert.alert("Erreur", "Produit introuvable"))
+      .catch(() => {
+        // Fallback démo : chercher le produit dans les données démo
+        const demoProduct = DEMO_PRODUCTS.find((p) => p.id === id) || DEMO_PRODUCTS[0];
+        setProduct(demoProduct);
+        setSimilar(DEMO_PRODUCTS.filter((p) => p.id !== demoProduct.id).slice(0, 4));
+      })
       .finally(() => setIsLoading(false));
   }, [id]);
 

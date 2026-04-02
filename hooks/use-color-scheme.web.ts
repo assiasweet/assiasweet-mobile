@@ -1,21 +1,7 @@
-import { useEffect, useState } from "react";
-import { useColorScheme as useRNColorScheme } from "react-native";
-
 /**
- * To support static rendering, this value needs to be re-calculated on the client side for web
+ * Web version: always return "light" to avoid useSyncExternalStore loop
+ * with @react-navigation/core on React 19 + react-native-web.
  */
 export function useColorScheme() {
-  const [hasHydrated, setHasHydrated] = useState(false);
-
-  useEffect(() => {
-    setHasHydrated(true);
-  }, []);
-
-  const colorScheme = useRNColorScheme();
-
-  if (hasHydrated) {
-    return colorScheme;
-  }
-
-  return "light";
+  return "light" as const;
 }

@@ -52,3 +52,21 @@
 - [x] Redirection post-login incorrecte selon le rôle (customer → tabs, staff → staff)
 - [x] Écran index.tsx ne redirige pas correctement vers /(tabs) pour les clients
 - [x] Vérifier tous les écrans client B2B (accueil, catalogue, panier, checkout)
+
+## Amélioration demandée (02/04/2026)
+- [x] Mode démo boutique : accéder directement à la boutique client sans connexion obligatoire
+- [x] Données de démo pour l'accueil (produits, catégories, sliders)
+- [x] Données de démo pour catalogue, fiche produit, panier
+
+## Corrections API (02/04/2026)
+- [ ] Corriger /api/products → /api/produits dans api.ts et tous les écrans
+- [ ] Corriger la structure de réponse sliders (d.sliders au lieu de d[])
+- [ ] Corriger la structure de réponse categories (d.categories au lieu de d[])
+- [ ] Corriger les types TypeScript (priceHT, image, isNew, isFeatured, inStock)
+- [ ] Résoudre le problème Unmatched Route sur le web
+
+## Reconstruction simple (02/04/2026)
+- [ ] Rollback node_modules propres (sans patches)
+- [ ] Écran produits basique avec FlatList + API réelle /api/produits
+- [ ] Vérifier que les 386 produits s'affichent
+- [ ] Ajouter les autres écrans un par un
