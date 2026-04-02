@@ -10,9 +10,12 @@ import {
   Alert,
   Modal,
   Image,
+  StyleSheet,
 } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
-import { getAdminProducts, updateProductStock } from "@/lib/api";
+import { BarcodeScanner } from "@/components/barcode-scanner";
+import { getAdminProducts, updateProductStock, getProductByBarcode } from "@/lib/api";
+import { getProductImage } from "@/lib/types";
 import type { Product } from "@/lib/types";
 
 function StockBadge({ stock }: { stock: number }) {
@@ -42,6 +45,34 @@ export default function StaffProductsScreen() {
   const [newStock, setNewStock] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [filterLowStock, setFilterLowStock] = useState(false);
+
+  // Scanner
+  const [showScanner, setShowScanner] = useState(false);
+  const [isScanSearching, setIsScanSearching] = useState(false);
+
+  const handleBarcodeScanned = async (barcode: string) => {
+    setShowScanner(false);
+    setIsScanSearching(true);
+    try {
+      const product = await getProductByBarcode(barcode);
+      if (product) {
+        setEditingProduct(product);
+        setNewStock(String(product.stock));
+      } else {
+        const match = products.find((p) => p.sku === barcode);
+        if (match) {
+          setEditingProduct(match);
+          setNewStock(String(match.stock));
+        } else {
+          Alert.alert("Produit introuvable", `Aucun produit trouvé pour le code :\n${barcode}`);
+        }
+      }
+    } catch {
+      Alert.alert("Erreur", "Impossible de rechercher le produit.");
+    } finally {
+      setIsScanSearching(false);
+    }
+  };
 
   const load = useCallback(async () => {
     try {
@@ -90,8 +121,26 @@ export default function StaffProductsScreen() {
 
   return (
     <ScreenContainer>
-      <View style={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 4 }}>
-        <Text style={{ fontSize: 22, fontWeight: "800", color: "#1E1E1E" }}>Produits</Text>
+      {/* Header avec bouton scanner */}
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8 }}>
+        <View>
+          <Text style={{ fontSize: 22, fontWeight: "800", color: "#1E1E1E" }}>Produits</Text>
+          <Text style={{ fontSize: 13, color: "#9CA3AF" }}>{products.length} articles</Text>
+        </View>
+        <TouchableOpacity
+          onPress={() => setShowScanner(true)}
+          disabled={isScanSearching}
+          style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#E91E7B", paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12 }}
+        >
+          {isScanSearching ? (
+            <ActivityIndicator color="white" size="small" />
+          ) : (
+            <>
+              <Text style={{ fontSize: 18 }}>⬛</Text>
+              <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>Scanner</Text>
+            </>
+          )}
+        </TouchableOpacity>
       </View>
 
       {/* Recherche */}
@@ -174,8 +223,8 @@ export default function StaffProductsScreen() {
               }}
             >
               <View style={{ width: 56, height: 56, backgroundColor: "#F9FAFB", borderRadius: 10, overflow: "hidden" }}>
-                {item.images?.[0] ? (
-                  <Image source={{ uri: item.images[0] }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+                {getProductImage(item) ? (
+                  <Image source={{ uri: getProductImage(item)! }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
                 ) : (
                   <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
                     <Text style={{ fontSize: 26 }}>🍬</Text>
@@ -233,9 +282,9 @@ export default function StaffProductsScreen() {
           </View>
 
           <View style={{ padding: 20, gap: 20 }}>
-            {editingProduct?.images?.[0] && (
+            {editingProduct && getProductImage(editingProduct) && (
               <Image
-                source={{ uri: editingProduct.images[0] }}
+                source={{ uri: getProductImage(editingProduct!)! }}
                 style={{ width: "100%", height: 160, borderRadius: 14 }}
                 resizeMode="cover"
               />
@@ -288,6 +337,19 @@ export default function StaffProductsScreen() {
               Stock actuel : {editingProduct?.stock} unités
             </Text>
 
+            {/* Presets rapides */}
+            <View style={{ flexDirection: "row", gap: 8, justifyContent: "center" }}>
+              {[0, 10, 25, 50, 100].map((preset) => (
+                <TouchableOpacity
+                  key={preset}
+                  onPress={() => setNewStock(String(preset))}
+                  style={{ paddingHorizontal: 14, paddingVertical: 8, backgroundColor: "#F3F4F6", borderRadius: 10 }}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: "600", color: "#374151" }}>{preset}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
             <TouchableOpacity
               onPress={handleSaveStock}
               disabled={isSaving}
@@ -301,6 +363,19 @@ export default function StaffProductsScreen() {
             </TouchableOpacity>
           </View>
         </View>
+      </Modal>
+
+      {/* Modal scanner plein écran */}
+      <Modal
+        visible={showScanner}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={() => setShowScanner(false)}
+      >
+        <BarcodeScanner
+          onScanned={handleBarcodeScanned}
+          onClose={() => setShowScanner(false)}
+        />
       </Modal>
     </ScreenContainer>
   );
