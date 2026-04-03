@@ -379,7 +379,7 @@ export default function HomeScreen() {
                       <Image source={{ uri: b.imageUrl }} style={styles.bannerBgImg} contentFit="cover" cachePolicy="memory-disk" />
                     )}
                     <LinearGradient
-                      colors={[b.bg + "CC", b.bg + "44", "transparent"]}
+                      colors={[b.bg + "A6", b.bg + "1A", "transparent"]}
                       start={{ x: 0, y: 0.5 }}
                       end={{ x: 1, y: 0.5 }}
                       style={styles.bannerOverlay}
@@ -712,9 +712,9 @@ const styles = StyleSheet.create({
   // Catégories
   catScroll: { paddingHorizontal: 16, paddingRight: 16 },
   catItemGap: { width: 14 },
-  catItem: { alignItems: "center", width: 80 },
+  catItem: { alignItems: "center", width: 72 },
   catCircle: {
-    width: 68, height: 68, borderRadius: 34,
+    width: 72, height: 60, borderRadius: 12,
     backgroundColor: "#fff",
     alignItems: "center", justifyContent: "center",
     overflow: "hidden",
@@ -722,8 +722,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1, shadowRadius: 8, elevation: 3,
     borderWidth: 1, borderColor: "rgba(233,30,123,0.08)",
   },
-  catImg: { width: 68, height: 68 },
-  catName: { fontSize: 10, fontWeight: "600", color: "#374151", textAlign: "center", marginTop: 6, lineHeight: 13 },
+  catImg: { width: 72, height: 60 },
+  catName: { fontSize: 10, fontWeight: "600", color: "#374151", textAlign: "center", marginTop: 5, lineHeight: 13 },
 
   // Card produit
   card: {

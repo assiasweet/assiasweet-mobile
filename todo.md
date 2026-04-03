@@ -92,3 +92,16 @@
 - [ ] P1 — Vérifier que les images produits s'affichent (Shopify CDN)
 - [ ] P1 — Vérifier le checkout complet (adresses, shipping, order)
 - [ ] P2 — Écran compte : historique commandes, profil, adresses
+
+## Corrections UI/UX (03/04/2026 — Audit visuel)
+- [x] Correction 1 — Slider banner : LinearGradient opacité max 0.65 gauche (A6), 0.1 droite (1A)
+- [x] Correction 2 — Catégories : pills rectangulaires borderRadius 12, labels raccourcis
+- [x] Correction 3 — Bug texte panier : deux Text séparés (déjà fait)
+- [x] Correction 4 — Bouton désactivé : fond #f3f4f6, texte #9ca3af, bordure légère (déjà fait)
+
+## Corrections backend Vercel (03/04/2026)
+- [x] Bug 1 — ProductStatus 'active' → 'ACTIF' dans checkout/order/route.ts
+- [x] Bug 2 — Route /compte/adresses : sessionToken → jwtVerify
+- [x] Bug 3 — Token JWT retourné dans JSON body de /auth/customer-login
+- [x] Bug 4 — OrderStatus 'confirmed' → 'EN_ATTENTE' et PaymentStatus 'pending' → 'EN_ATTENTE'
+- [x] Tests validation : login ✅, adresses ✅, création commande CMD-2026-9217 ✅, synchro admin ✅
