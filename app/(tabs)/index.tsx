@@ -160,6 +160,7 @@ export default function HomeScreen() {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [bestsellers, setBestsellers] = useState<Product[]>([]);
   const [newProducts, setNewProducts] = useState<Product[]>([]);
+  const [youLikeProducts, setYouLikeProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [bannerIdx, setBannerIdx] = useState(0);
@@ -170,9 +171,10 @@ export default function HomeScreen() {
 
   const loadData = useCallback(async () => {
     try {
-      const [catRes, prodRes] = await Promise.all([
+      const [catRes, prodRes, featuredRes] = await Promise.all([
         fetch("https://assiasweet.vercel.app/api/categories").then((r) => r.json()),
         fetch("https://assiasweet.vercel.app/api/produits?limit=40").then((r) => r.json()),
+        fetch("https://assiasweet.vercel.app/api/produits?featured=true&limit=20").then((r) => r.json()),
       ]);
 
       if (catRes?.categories) {
@@ -189,6 +191,10 @@ export default function HomeScreen() {
         const news = all.filter((p) => p.isNew);
         setNewProducts(news.length >= 4 ? news.slice(0, 10) : all.slice(10, 20));
       }
+      // Vous allez les aimer : produits featured avec image et prix
+      const featuredAll: Product[] = featuredRes?.products ?? featuredRes?.data ?? (Array.isArray(featuredRes) ? featuredRes : []);
+      const youLike = featuredAll.filter((p) => p.image && p.priceHT);
+      setYouLikeProducts(youLike.slice(0, 10));
     } catch {
       // Silencieux : pas de bandeau d'erreur
     } finally {
@@ -446,6 +452,28 @@ export default function HomeScreen() {
           </View>
         )}
 
+        {/* ── VOUS ALLEZ LES AIMER ── */}
+        {youLikeProducts.length > 0 && (
+          <View style={{ marginBottom: 28 }}>
+            <SectionHeader
+              title="Vous allez les aimer 🍬"
+              onSeeAll={() => router.push("/(tabs)/catalog?filter=featured" as never)}
+            />
+            <FlatList
+              data={youLikeProducts}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(p) => `youlike-${p.id}`}
+              contentContainerStyle={{ paddingHorizontal: 16 }}
+              ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
+              renderItem={({ item }) => (
+                <View style={{ width: CARD_W }}>
+                  <ProductCard item={item} onAdd={handleAddToCart} />
+                </View>
+              )}
+            />
+          </View>
+        )}
         {/* Loader initial */}
         {isLoading && (
           <View style={{ alignItems: "center", paddingVertical: 40 }}>
