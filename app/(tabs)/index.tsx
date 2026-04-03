@@ -301,12 +301,12 @@ export default function HomeScreen() {
             style={({ pressed }) => [styles.headerIconBtn, pressed && { opacity: 0.7, transform: [{ scale: 0.93 }] }]}
             onPress={() => router.push("/(tabs)/cart" as never)}
           >
-            {/* Icône panier SVG-like avec View */}
+            {/* Icône panier : sac de shopping */}
             <View style={styles.cartIconWrap}>
-              <View style={styles.cartIconBody} />
-              <View style={styles.cartIconHandle} />
-              <View style={styles.cartIconWheel1} />
-              <View style={styles.cartIconWheel2} />
+              {/* Corps du sac */}
+              <View style={styles.cartBagBody} />
+              {/* Anse du sac */}
+              <View style={styles.cartBagHandle} />
             </View>
             {cartCount > 0 && (
               <View style={styles.headerBadge}>
@@ -325,11 +325,8 @@ export default function HomeScreen() {
         {/* ── BARRE DE RECHERCHE ── */}
         <View style={styles.searchWrap}>
           <View style={styles.searchBar}>
-            {/* Icône loupe personnalisée */}
-            <View style={styles.searchIconWrap}>
-              <View style={styles.searchIconCircle} />
-              <View style={styles.searchIconHandle} />
-            </View>
+            {/* Icône loupe Material */}
+            <Text style={{ fontSize: 18, color: "#E91E7B", marginRight: 8 }}>🔍</Text>
             <TextInput
               value={search}
               onChangeText={setSearch}
@@ -528,6 +525,46 @@ export default function HomeScreen() {
             />
           </View>
         )}
+        {/* ── SECTION PROMO (Nouvelle Arrivage + Livraison) ── */}
+        <View style={styles.promoSection}>
+          {/* Carte Nouvelle Arrivage */}
+          <TouchableOpacity
+            style={[styles.promoCard, styles.promoCardLeft]}
+            activeOpacity={0.88}
+            onPress={() => router.push("/(tabs)/catalog?filter=new" as never)}
+          >
+            <View style={styles.promoCardOverlay} />
+            <View style={styles.promoCardContent}>
+              <View style={styles.promoBadge}>
+                <Text style={styles.promoBadgeText}>Édition Limitée</Text>
+              </View>
+              <Text style={styles.promoCardTitle}>Nouvelle{"\n"}Arrivage Pâques</Text>
+              <Text style={styles.promoCardSub}>Œufs surprises, chocolats & confiseries</Text>
+              <View style={styles.promoCtaBtn}>
+                <Text style={styles.promoCtaText}>Découvrir →</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+
+          {/* Carte Livraison */}
+          <TouchableOpacity
+            style={[styles.promoCard, styles.promoCardRight]}
+            activeOpacity={0.88}
+            onPress={() => router.push("/(tabs)/catalog" as never)}
+          >
+            <View style={styles.promoCardContent}>
+              <View style={[styles.promoBadge, { backgroundColor: "rgba(255,255,255,0.25)" }]}>
+                <Text style={styles.promoBadgeText}>🚚 Livraison 24/48h</Text>
+              </View>
+              <Text style={[styles.promoCardTitle, { color: "#fff" }]}>Livraison{"\n"}France & Europe</Text>
+              <Text style={[styles.promoCardSub, { color: "rgba(255,255,255,0.85)" }]}>Retrait gratuit à Roissy</Text>
+              <View style={[styles.promoCtaBtn, { backgroundColor: "#fff" }]}>
+                <Text style={[styles.promoCtaText, { color: "#E91E7B" }]}>Commander →</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </View>
+
         {/* Loader initial */}
         {isLoading && (
           <View style={{ alignItems: "center", paddingVertical: 40 }}>
@@ -577,23 +614,23 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: "rgba(233,30,123,0.1)",
   },
   cartIconWrap: {
-    width: 22, height: 22,
+    width: 26, height: 26,
     alignItems: "center", justifyContent: "center",
     position: "relative",
   },
-  cartIconBody: {
+  cartBagBody: {
     position: "absolute",
-    top: 4, left: 1,
-    width: 20, height: 13,
-    borderRadius: 3,
+    bottom: 0, left: 1,
+    width: 24, height: 16,
+    borderRadius: 4,
     backgroundColor: "#E91E7B",
   },
-  cartIconHandle: {
+  cartBagHandle: {
     position: "absolute",
     top: 0, left: 6,
-    width: 10, height: 6,
-    borderTopLeftRadius: 5, borderTopRightRadius: 5,
-    borderWidth: 2, borderColor: "#E91E7B",
+    width: 14, height: 10,
+    borderTopLeftRadius: 7, borderTopRightRadius: 7,
+    borderWidth: 2.5, borderColor: "#E91E7B",
     borderBottomWidth: 0,
     backgroundColor: "transparent",
   },
@@ -715,7 +752,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 5,
   },
-  cardImgWrap: { position: "relative", width: "100%", aspectRatio: 1 },
+  cardImgWrap: { position: "relative", width: "100%", aspectRatio: 0.9 },
   cardImg: { width: "100%", height: "100%" },
   cardImgPlaceholder: { backgroundColor: "#FFF0F7", alignItems: "center", justifyContent: "center" },
   cardPlaceholderIcon: {
@@ -753,4 +790,72 @@ const styles = StyleSheet.create({
   cardName: { fontSize: 13, fontWeight: "600", color: "#1E1E1E", lineHeight: 18, marginBottom: 6 },
   cardPrice: { fontSize: 16, fontWeight: "800", color: "#1E1E1E" },
   cardPriceUnit: { fontSize: 12, fontWeight: "400", color: "#9CA3AF" },
+  // Section promo
+  promoSection: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    gap: 12,
+    marginBottom: 32,
+  },
+  promoCard: {
+    flex: 1,
+    borderRadius: 18,
+    overflow: "hidden",
+    minHeight: 180,
+    justifyContent: "flex-end",
+    position: "relative",
+  },
+  promoCardLeft: {
+    backgroundColor: "#2D4A2D",
+  },
+  promoCardRight: {
+    backgroundColor: "#C2185B",
+  },
+  promoCardOverlay: {
+    position: "absolute",
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.25)",
+  },
+  promoCardContent: {
+    padding: 14,
+    zIndex: 1,
+  },
+  promoBadge: {
+    backgroundColor: "rgba(255,255,255,0.2)",
+    borderRadius: 20,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    alignSelf: "flex-start",
+    marginBottom: 8,
+  },
+  promoBadgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "600",
+  },
+  promoCardTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#fff",
+    lineHeight: 20,
+    marginBottom: 4,
+  },
+  promoCardSub: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.75)",
+    lineHeight: 15,
+    marginBottom: 10,
+  },
+  promoCtaBtn: {
+    backgroundColor: "rgba(255,255,255,0.9)",
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    alignSelf: "flex-start",
+  },
+  promoCtaText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#1E1E1E",
+  },
 });

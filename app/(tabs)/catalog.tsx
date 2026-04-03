@@ -264,7 +264,12 @@ export default function CatalogScreen() {
             justifyContent: "center",
           }}
         >
-          <Text style={{ fontSize: 18 }}>⚙️</Text>
+          {/* Icône filtre */}
+          <View style={{ gap: 3, alignItems: "center" }}>
+            <View style={{ width: 18, height: 2, borderRadius: 1, backgroundColor: activeFiltersCount > 0 ? "#fff" : "#E91E7B" }} />
+            <View style={{ width: 13, height: 2, borderRadius: 1, backgroundColor: activeFiltersCount > 0 ? "#fff" : "#E91E7B" }} />
+            <View style={{ width: 8, height: 2, borderRadius: 1, backgroundColor: activeFiltersCount > 0 ? "#fff" : "#E91E7B" }} />
+          </View>
           {activeFiltersCount > 0 && (
             <View
               style={{
