@@ -85,10 +85,10 @@
 - [ ] Générer APK de test via EAS Build
 
 ## Audit technique complet (03/04/2026)
-- [ ] P0 — Bug fiche produit : API retourne { product: {...} } mais getProduct() attend Product directement → unwrap le wrapper
-- [ ] P0 — Bug navigation fiche produit : navigation utilise product.id (UUID) mais l'API n'accepte que les slugs → utiliser product.slug
-- [ ] P0 — Corriger getProduct() dans api.ts pour dépaqueter { product: ... }
-- [ ] P0 — Corriger tous les onPress produit pour utiliser slug au lieu de id
+- [x] P0 — Bug fiche produit : API retourne { product: {...} } mais getProduct() attend Product directement → unwrap le wrapper
+- [x] P0 — Bug navigation fiche produit : navigation utilise product.id (UUID) mais l'API n'accepte que les slugs → utiliser product.slug
+- [x] P0 — Corriger getProduct() dans api.ts pour dépaqueter { product: ... }
+- [x] P0 — Corriger tous les onPress produit pour utiliser slug au lieu de id
 - [ ] P1 — Vérifier que les images produits s'affichent (Shopify CDN)
 - [ ] P1 — Vérifier le checkout complet (adresses, shipping, order)
 - [ ] P2 — Écran compte : historique commandes, profil, adresses
