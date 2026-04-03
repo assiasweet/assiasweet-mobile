@@ -1,9 +1,11 @@
 "use no memo";
 import "@/global.css";
+import { useState } from "react";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { AnimatedSplash } from "@/components/animated-splash";
 
 // Apply theme CSS variables directly on web
 if (typeof document !== "undefined") {
@@ -26,10 +28,12 @@ if (typeof document !== "undefined") {
 export const unstable_settings = { initialRouteName: "(tabs)" };
 
 export default function RootLayout() {
+  const [splashDone, setSplashDone] = useState(false);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <StatusBar style="auto" />
+        <StatusBar style={splashDone ? "auto" : "light"} />
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="index" />
           <Stack.Screen name="(auth)" />
@@ -44,6 +48,7 @@ export default function RootLayout() {
           <Stack.Screen name="invoices" options={{ headerShown: true, title: "Mes factures", headerTintColor: "#E91E7B" }} />
           <Stack.Screen name="oauth/callback" />
         </Stack>
+        {!splashDone && <AnimatedSplash onFinish={() => setSplashDone(true)} />}
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

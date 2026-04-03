@@ -11,7 +11,16 @@ import {
   Dimensions,
   ActivityIndicator,
   RefreshControl,
+  Pressable,
 } from "react-native";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSpring,
+  Easing,
+} from "react-native-reanimated";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useAuthStore } from "@/store/auth";
@@ -80,76 +89,110 @@ function buildBannersFromCategories(cats: Category[]): Banner[] {
     }));
 }
 
+//// ─── Composant FadeIn Section ───────────────────────────────────────────────
+function FadeInSection({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
+  const opacity = useSharedValue(0);
+  const translateY = useSharedValue(20);
+  const anim = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: translateY.value }],
+  }));
+  useEffect(() => {
+    opacity.value = withTiming(1, { duration: 400, easing: Easing.out(Easing.quad) });
+    translateY.value = withTiming(0, { duration: 400, easing: Easing.out(Easing.quad) });
+  }, []);
+  return <Animated.View style={anim}>{children}</Animated.View>;
+}
+
 // ─── Composant Card Produit ───────────────────────────────────────────────────
 function ProductCard({ item, onAdd }: { item: Product; onAdd: (p: Product) => void }) {
   const img = getProductImage(item);
   const price = getProductPrice(item);
   const halal = isProductHalal(item);
-
+  const scale = useSharedValue(1);
+  const cardAnim = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+  const brandName = typeof item.brand === "string" ? item.brand : item.brand?.name ?? "";
   return (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => router.push(`/product/${item.id}` as never)}
-      activeOpacity={0.92}
-    >
-      {/* Image */}
-      <View style={styles.cardImgWrap}>
-        {img ? (
-          <Image source={{ uri: img }} style={styles.cardImg} resizeMode="cover" />
-        ) : (
-          <View style={[styles.cardImg, styles.cardImgPlaceholder]}>
-            <Text style={{ fontSize: 40 }}>🍬</Text>
+    <Animated.View style={[styles.card, cardAnim]}>
+      <Pressable
+        style={{ flex: 1 }}
+        onPress={() => router.push(`/product/${item.id}` as never)}
+        onPressIn={() => { scale.value = withSpring(0.97, { damping: 15, stiffness: 200 }); }}
+        onPressOut={() => { scale.value = withSpring(1, { damping: 15, stiffness: 200 }); }}
+      >
+        {/* Image */}
+        <View style={styles.cardImgWrap}>
+          {img ? (
+            <Image source={{ uri: img }} style={styles.cardImg} resizeMode="cover" />
+          ) : (
+            <View style={[styles.cardImg, styles.cardImgPlaceholder]}>
+              <View style={styles.cardPlaceholderIcon}>
+                <Text style={{ fontSize: 32, color: "#E91E7B" }}>A</Text>
+              </View>
+            </View>
+          )}
+          {/* Gradient overlay bas */}
+          <LinearGradient
+            colors={["transparent", "rgba(0,0,0,0.08)"]}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+          {/* Badges */}
+          <View style={styles.badgeRow}>
+            {halal && (
+              <View style={styles.halalBadge}>
+                <Text style={styles.halalText}>Halal</Text>
+              </View>
+            )}
+            {item.isNew && (
+              <View style={styles.newBadge}>
+                <Text style={styles.newText}>Nouveau</Text>
+              </View>
+            )}
           </View>
-        )}
-        {/* Badge Halal */}
-        {halal && (
-          <View style={styles.halalBadge}>
-            <Text style={styles.halalText}>Halal</Text>
-          </View>
-        )}
-        {/* Badge Nouveau */}
-        {item.isNew && (
-          <View style={styles.newBadge}>
-            <Text style={styles.newText}>Nouveau</Text>
-          </View>
-        )}
-        {/* Bouton + */}
-        <TouchableOpacity
-          style={styles.addBtn}
-          onPress={(e) => { e.stopPropagation(); onAdd(item); }}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.addBtnText}>+</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Infos */}
-      <View style={styles.cardBody}>
-        <Text style={styles.cardBrand} numberOfLines={1}>
-          {typeof item.brand === "string" ? item.brand : item.brand?.name ?? ""}
-        </Text>
-        <Text style={styles.cardName} numberOfLines={2}>{item.name}</Text>
-        <Text style={styles.cardPrice}>{price.toFixed(2)} € HT</Text>
-      </View>
-    </TouchableOpacity>
+          {/* Bouton + */}
+          <Pressable
+            style={({ pressed }) => [styles.addBtn, pressed && { opacity: 0.85, transform: [{ scale: 0.92 }] }]}
+            onPress={(e) => { e.stopPropagation(); onAdd(item); }}
+          >
+            <Text style={styles.addBtnText}>+</Text>
+          </Pressable>
+        </View>
+        {/* Infos */}
+        <View style={styles.cardBody}>
+          {brandName ? (
+            <Text style={styles.cardBrand} numberOfLines={1}>{brandName.toUpperCase()}</Text>
+          ) : null}
+          <Text style={styles.cardName} numberOfLines={2}>{item.name}</Text>
+          <Text style={styles.cardPrice}>{price.toFixed(2)} <Text style={styles.cardPriceUnit}>€ HT</Text></Text>
+        </View>
+      </Pressable>
+    </Animated.View>
   );
 }
 
-// ─── Composant Section Header ─────────────────────────────────────────────────
+// ─── Composant Section Header ───────────────────────────────────────────────────
 function SectionHeader({ title, onSeeAll }: { title: string; onSeeAll?: () => void }) {
   return (
     <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <View style={styles.sectionTitleWrap}>
+        <View style={styles.sectionAccent} />
+        <Text style={styles.sectionTitle}>{title}</Text>
+      </View>
       {onSeeAll && (
-        <TouchableOpacity onPress={onSeeAll} activeOpacity={0.7}>
-          <Text style={styles.seeAll}>Voir tout →</Text>
-        </TouchableOpacity>
+        <Pressable
+          onPress={onSeeAll}
+          style={({ pressed }) => [styles.seeAllBtn, pressed && { opacity: 0.6 }]}
+        >
+          <Text style={styles.seeAll}>Voir tout</Text>
+          <Text style={styles.seeAllArrow}>›</Text>
+        </Pressable>
       )}
     </View>
   );
-}
-
-// ─── Écran principal ──────────────────────────────────────────────────────────
+}// ─── Écran principal ──────────────────────────────────────────────────────────
 export default function HomeScreen() {
   const auth = useAuthStore((s) => s.auth);
   const customer = auth.status === "customer" ? auth.customer : null;
@@ -236,37 +279,43 @@ export default function HomeScreen() {
   return (
     <ScreenContainer containerClassName="bg-[#FAFAFA]" edges={["top", "left", "right"]}>
       {/* ── HEADER ── */}
-      <View style={styles.header}>
+      <LinearGradient
+        colors={["#fff", "#fff"]}
+        style={styles.header}
+      >
         <View style={styles.headerLeft}>
-          <Image
-            source={require("@/assets/images/icon.png")}
-            style={styles.headerLogo}
-            resizeMode="contain"
-          />
+          <View style={styles.headerLogoWrap}>
+            <Image
+              source={require("@/assets/images/assiasweet-logo.png")}
+              style={styles.headerLogo}
+              resizeMode="contain"
+            />
+          </View>
           <View>
-            <Text style={styles.headerGreeting}>Bonjour {firstName} 👋</Text>
-            {company ? (
-              <Text style={styles.headerCompany}>{company}</Text>
-            ) : (
-              <Text style={styles.headerCompany}>AssiaSweet B2B</Text>
-            )}
+            <Text style={styles.headerGreeting}>Bonjour{firstName ? ` ${firstName}` : ""}</Text>
+            <Text style={styles.headerCompany}>{company || "AssiaSweet B2B"}</Text>
           </View>
         </View>
         <View style={styles.headerRight}>
-          <TouchableOpacity
-            style={styles.headerIconBtn}
+          <Pressable
+            style={({ pressed }) => [styles.headerIconBtn, pressed && { opacity: 0.7, transform: [{ scale: 0.93 }] }]}
             onPress={() => router.push("/(tabs)/cart" as never)}
-            activeOpacity={0.7}
           >
-            <Text style={{ fontSize: 20 }}>🛒</Text>
+            {/* Icône panier SVG-like avec View */}
+            <View style={styles.cartIconWrap}>
+              <View style={styles.cartIconBody} />
+              <View style={styles.cartIconHandle} />
+              <View style={styles.cartIconWheel1} />
+              <View style={styles.cartIconWheel2} />
+            </View>
             {cartCount > 0 && (
               <View style={styles.headerBadge}>
                 <Text style={styles.headerBadgeText}>{cartCount > 9 ? "9+" : cartCount}</Text>
               </View>
             )}
-          </TouchableOpacity>
+          </Pressable>
         </View>
-      </View>
+      </LinearGradient>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -276,12 +325,16 @@ export default function HomeScreen() {
         {/* ── BARRE DE RECHERCHE ── */}
         <View style={styles.searchWrap}>
           <View style={styles.searchBar}>
-            <Text style={styles.searchIcon}>🔍</Text>
+            {/* Icône loupe personnalisée */}
+            <View style={styles.searchIconWrap}>
+              <View style={styles.searchIconCircle} />
+              <View style={styles.searchIconHandle} />
+            </View>
             <TextInput
               value={search}
               onChangeText={setSearch}
               placeholder="Rechercher un produit, une marque..."
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor="#C4C4C4"
               style={styles.searchInput}
               returnKeyType="search"
               onSubmitEditing={handleSearch}
@@ -342,6 +395,7 @@ export default function HomeScreen() {
         </View>
 
         {/* ── CATÉGORIES ── */}
+        <FadeInSection delay={100}>
         <View style={{ marginBottom: 28 }}>
           <SectionHeader
             title="Catégories"
@@ -382,7 +436,7 @@ export default function HomeScreen() {
             </ScrollView>
           )}
         </View>
-
+        </FadeInSection>
         {/* ── BEST-SELLERS ── */}
         {bestsellers.length > 0 && (
           <View style={{ marginBottom: 28 }}>
@@ -492,29 +546,75 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
     backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
+    borderBottomWidth: 0.5,
+    borderBottomColor: "rgba(0,0,0,0.06)",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  headerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
-  headerLogo: { width: 40, height: 40, borderRadius: 10 },
-  headerGreeting: { fontSize: 15, fontWeight: "700", color: "#1E1E1E" },
-  headerCompany: { fontSize: 12, color: "#9CA3AF", marginTop: 1 },
+  headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
+  headerLogoWrap: {
+    width: 44, height: 44, borderRadius: 14,
+    backgroundColor: "#FFF0F7",
+    alignItems: "center", justifyContent: "center",
+    overflow: "hidden",
+    borderWidth: 1, borderColor: "rgba(233,30,123,0.12)",
+  },
+  headerLogo: { width: 36, height: 36 },
+  headerGreeting: { fontSize: 16, fontWeight: "700", color: "#1E1E1E", letterSpacing: -0.3 },
+  headerCompany: { fontSize: 12, color: "#E91E7B", marginTop: 1, fontWeight: "500" },
   headerRight: { flexDirection: "row", gap: 8 },
   headerIconBtn: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: "#F9FAFB",
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: "#FFF0F7",
+    alignItems: "center", justifyContent: "center",
+    position: "relative",
+    borderWidth: 1, borderColor: "rgba(233,30,123,0.1)",
+  },
+  cartIconWrap: {
+    width: 22, height: 22,
     alignItems: "center", justifyContent: "center",
     position: "relative",
   },
+  cartIconBody: {
+    position: "absolute",
+    top: 4, left: 1,
+    width: 20, height: 13,
+    borderRadius: 3,
+    backgroundColor: "#E91E7B",
+  },
+  cartIconHandle: {
+    position: "absolute",
+    top: 0, left: 6,
+    width: 10, height: 6,
+    borderTopLeftRadius: 5, borderTopRightRadius: 5,
+    borderWidth: 2, borderColor: "#E91E7B",
+    borderBottomWidth: 0,
+    backgroundColor: "transparent",
+  },
+  cartIconWheel1: {
+    position: "absolute",
+    bottom: 0, left: 4,
+    width: 5, height: 5, borderRadius: 2.5,
+    backgroundColor: "#E91E7B",
+  },
+  cartIconWheel2: {
+    position: "absolute",
+    bottom: 0, right: 3,
+    width: 5, height: 5, borderRadius: 2.5,
+    backgroundColor: "#E91E7B",
+  },
   headerBadge: {
-    position: "absolute", top: -2, right: -2,
-    backgroundColor: "#E91E7B", borderRadius: 8,
-    minWidth: 16, height: 16,
+    position: "absolute", top: -3, right: -3,
+    backgroundColor: "#E91E7B", borderRadius: 9,
+    minWidth: 18, height: 18,
     alignItems: "center", justifyContent: "center",
-    paddingHorizontal: 3, borderWidth: 1.5, borderColor: "#fff",
+    paddingHorizontal: 4, borderWidth: 2, borderColor: "#fff",
   },
   headerBadgeText: { color: "#fff", fontSize: 9, fontWeight: "800" },
 
@@ -523,19 +623,33 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: "row", alignItems: "center",
     backgroundColor: "#fff",
-    borderRadius: 14, paddingHorizontal: 14,
-    height: 48,
-    shadowColor: "#000", shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
-    borderWidth: 1, borderColor: "#F3F4F6",
+    borderRadius: 16, paddingHorizontal: 16,
+    height: 50,
+    shadowColor: "#E91E7B", shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08, shadowRadius: 8, elevation: 3,
+    borderWidth: 1, borderColor: "rgba(233,30,123,0.1)",
+  },
+  searchIconWrap: {
+    width: 20, height: 20, marginRight: 10,
+    alignItems: "center", justifyContent: "center",
+  },
+  searchIconCircle: {
+    width: 14, height: 14, borderRadius: 7,
+    borderWidth: 2, borderColor: "#9CA3AF",
+  },
+  searchIconHandle: {
+    position: "absolute", bottom: 0, right: 0,
+    width: 6, height: 2, borderRadius: 1,
+    backgroundColor: "#9CA3AF",
+    transform: [{ rotate: "45deg" }],
   },
   searchIcon: { fontSize: 16, marginRight: 8 },
-  searchInput: { flex: 1, fontSize: 15, color: "#1E1E1E" },
+  searchInput: { flex: 1, fontSize: 15, color: "#1E1E1E", fontWeight: "400" },
 
   // Bannière
   banner: {
-    borderRadius: 16, overflow: "hidden",
-    minHeight: 150,
+    borderRadius: 20, overflow: "hidden",
+    minHeight: 160,
     justifyContent: "flex-end",
     position: "relative",
   },
@@ -555,71 +669,88 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   bannerCtaText: { fontSize: 12, fontWeight: "700" },
-  dots: { flexDirection: "row", justifyContent: "center", gap: 5, marginTop: 10 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#D1D5DB" },
-  dotActive: { width: 18, backgroundColor: "#E91E7B" },
+  dots: { flexDirection: "row", justifyContent: "center", gap: 6, marginTop: 12 },
+  dot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: "rgba(233,30,123,0.2)" },
+  dotActive: { width: 20, height: 5, borderRadius: 2.5, backgroundColor: "#E91E7B" },
 
   // Section header
   sectionHeader: {
     flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-    paddingHorizontal: 16, marginBottom: 14,
+    paddingHorizontal: 16, marginBottom: 16,
   },
-  sectionTitle: { fontSize: 17, fontWeight: "800", color: "#1E1E1E" },
-  seeAll: { fontSize: 13, fontWeight: "600", color: "#E91E7B" },
+  sectionTitleWrap: { flexDirection: "row", alignItems: "center", gap: 8 },
+  sectionAccent: {
+    width: 4, height: 18, borderRadius: 2,
+    backgroundColor: "#E91E7B",
+  },
+  sectionTitle: { fontSize: 17, fontWeight: "800", color: "#1E1E1E", letterSpacing: -0.3 },
+  seeAllBtn: { flexDirection: "row", alignItems: "center", gap: 2, paddingVertical: 4, paddingHorizontal: 8, backgroundColor: "#FFF0F7", borderRadius: 20 },
+  seeAll: { fontSize: 12, fontWeight: "600", color: "#E91E7B" },
+  seeAllArrow: { fontSize: 16, fontWeight: "700", color: "#E91E7B", lineHeight: 18 },
 
   // Catégories
   catScroll: { paddingHorizontal: 16, paddingRight: 16 },
-  catItemGap: { width: 12 },
-  catItem: { alignItems: "center", width: 72 },
+  catItemGap: { width: 14 },
+  catItem: { alignItems: "center", width: 76 },
   catCircle: {
-    width: 60, height: 60, borderRadius: 30,
+    width: 64, height: 64, borderRadius: 32,
     backgroundColor: "#fff",
     alignItems: "center", justifyContent: "center",
     overflow: "hidden",
-    shadowColor: "#000", shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08, shadowRadius: 4, elevation: 2,
-    borderWidth: 0.5, borderColor: "#E5E7EB",
+    shadowColor: "#E91E7B", shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1, shadowRadius: 8, elevation: 3,
+    borderWidth: 1, borderColor: "rgba(233,30,123,0.08)",
   },
-  catImg: { width: 60, height: 60 },
-  catName: { fontSize: 11, fontWeight: "600", color: "#374151", textAlign: "center", marginTop: 6, lineHeight: 14 },
+  catImg: { width: 64, height: 64 },
+  catName: { fontSize: 11, fontWeight: "600", color: "#374151", textAlign: "center", marginTop: 7, lineHeight: 14 },
 
   // Card produit
   card: {
     backgroundColor: "#fff",
-    borderRadius: 14,
+    borderRadius: 18,
     overflow: "hidden",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.09,
+    shadowRadius: 12,
+    elevation: 5,
   },
   cardImgWrap: { position: "relative", width: "100%", aspectRatio: 1 },
   cardImg: { width: "100%", height: "100%" },
-  cardImgPlaceholder: { backgroundColor: "#F9FAFB", alignItems: "center", justifyContent: "center" },
+  cardImgPlaceholder: { backgroundColor: "#FFF0F7", alignItems: "center", justifyContent: "center" },
+  cardPlaceholderIcon: {
+    width: 56, height: 56, borderRadius: 28,
+    backgroundColor: "#FCE4F0",
+    alignItems: "center", justifyContent: "center",
+  },
+  badgeRow: {
+    position: "absolute", top: 8, left: 8,
+    flexDirection: "row", gap: 4,
+  },
   halalBadge: {
-    position: "absolute", top: 8, left: 8,
-    backgroundColor: "#27AE60", borderRadius: 6,
+    backgroundColor: "rgba(39,174,96,0.92)",
+    borderRadius: 8,
     paddingHorizontal: 7, paddingVertical: 3,
   },
-  halalText: { color: "#fff", fontSize: 10, fontWeight: "700" },
+  halalText: { color: "#fff", fontSize: 9, fontWeight: "700", letterSpacing: 0.5 },
   newBadge: {
-    position: "absolute", top: 8, left: 8,
-    backgroundColor: "#2563EB", borderRadius: 6,
+    backgroundColor: "rgba(37,99,235,0.92)",
+    borderRadius: 8,
     paddingHorizontal: 7, paddingVertical: 3,
   },
-  newText: { color: "#fff", fontSize: 10, fontWeight: "700" },
+  newText: { color: "#fff", fontSize: 9, fontWeight: "700", letterSpacing: 0.5 },
   addBtn: {
-    position: "absolute", bottom: 8, right: 8,
-    width: 32, height: 32, borderRadius: 16,
+    position: "absolute", bottom: 10, right: 10,
+    width: 34, height: 34, borderRadius: 17,
     backgroundColor: "#E91E7B",
     alignItems: "center", justifyContent: "center",
-    shadowColor: "#E91E7B", shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4, shadowRadius: 4, elevation: 4,
+    shadowColor: "#E91E7B", shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.45, shadowRadius: 6, elevation: 5,
   },
-  addBtnText: { color: "#fff", fontSize: 20, fontWeight: "700", lineHeight: 24 },
-  cardBody: { padding: 10 },
-  cardBrand: { fontSize: 11, color: "#9CA3AF", fontWeight: "500", marginBottom: 2 },
-  cardName: { fontSize: 13, fontWeight: "700", color: "#1E1E1E", lineHeight: 18, marginBottom: 4 },
-  cardPrice: { fontSize: 15, fontWeight: "800", color: "#E91E7B" },
+  addBtnText: { color: "#fff", fontSize: 22, fontWeight: "300", lineHeight: 26, marginTop: -1 },
+  cardBody: { padding: 12, paddingTop: 10 },
+  cardBrand: { fontSize: 10, color: "#E91E7B", fontWeight: "700", marginBottom: 3, letterSpacing: 0.8 },
+  cardName: { fontSize: 13, fontWeight: "600", color: "#1E1E1E", lineHeight: 18, marginBottom: 6 },
+  cardPrice: { fontSize: 16, fontWeight: "800", color: "#1E1E1E" },
+  cardPriceUnit: { fontSize: 12, fontWeight: "400", color: "#9CA3AF" },
 });
