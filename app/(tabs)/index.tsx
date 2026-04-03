@@ -23,18 +23,26 @@ const { width: W } = Dimensions.get("window");
 const CARD_W = (W - 48) / 2;
 
 // ─── Marques statiques avec vrais logos ─────────────────────────────────────
-const BASE = "https://assiasweet.vercel.app/brands";
 const BRANDS = [
-  { name: "Haribo", color: "#FFF3CD", logo: `${BASE}/haribo.webp` },
-  { name: "Damel", color: "#FCE4F0", logo: `${BASE}/damel.webp` },
-  { name: "Fini", color: "#E8F5E9", logo: `${BASE}/fini.png` },
-  { name: "Dulceplus", color: "#E3F2FD", logo: `${BASE}/dulceplus.jpg` },
-  { name: "Trolli", color: "#F3E5F5", logo: `${BASE}/trolli.png` },
-  { name: "Malabar", color: "#FFF8E1", logo: `${BASE}/malabar.jpg` },
-  { name: "Carambar", color: "#FBE9E7", logo: `${BASE}/carambar.webp` },
-  { name: "Hitschies", color: "#FFF0F5", logo: `${BASE}/hitschies.png` },
-  { name: "Chupa Chups", color: "#FEF9C3", logo: `${BASE}/chupa-chups.svg` },
-  { name: "Mentos", color: "#F0F9FF", logo: `${BASE}/mentos.png` },
+  { name: "Haribo", logo: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663351627308/vMuufDhOVPBalpKm.png" },
+  { name: "Damel", logo: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663351627308/iqKIxdeIUgsvkUvi.png" },
+  { name: "Fini", logo: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663351627308/DvdvUlBvCLLSCrDA.png" },
+  { name: "Chupa Chups", logo: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663351627308/djeWwovMSskIMIIm.png" },
+  { name: "Mentos", logo: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663351627308/YaTOjNWakinjHOpY.png" },
+  { name: "Malabar", logo: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663351627308/UMqwlaTTZHIJnhBt.png" },
+  { name: "Hollywood", logo: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663351627308/KoUFYhsLCadKdGjS.png" },
+  { name: "Astra", logo: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663351627308/lyYNLzJkriREnfdp.png" },
+  { name: "Trolli", logo: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663351627308/WSsPGYeqoPLKRJwb.png" },
+  { name: "Hitschler", logo: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663351627308/AsYbosVNaTfQNilh.png" },
+  { name: "Carambar", logo: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663351627308/PhkHlUXiBIIdrNhH.png" },
+  { name: "Cerdán", logo: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663351627308/vZZkqpLTQbrZIybM.png" },
+  { name: "Dulceplus", logo: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663351627308/UdtoJzPMdSeHvacc.png" },
+  { name: "Têtes Brûlées", logo: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663351627308/mTMKbjzHrIxzrdUv.png" },
+  { name: "Josfrit", logo: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663351627308/LctbMVlaNXojYbzr.png" },
+  { name: "King Regal", logo: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663351627308/KkMvNqyMwAnBdLwV.png" },
+  { name: "Zed", logo: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663351627308/tAZaPXEWqXDkTJGj.png" },
+  { name: "Johnny's", logo: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663351627308/LcBPrdMRfbZjeiZb.png" },
+  { name: "Nom", logo: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663351627308/qkWGvqtFwtWjZVhy.png" },
 ];
 
 // ─── Bannières slider basées sur les catégories réelles ───────────────────────
@@ -403,10 +411,10 @@ export default function HomeScreen() {
                 onPress={() => router.push(`/(tabs)/catalog?brand=${encodeURIComponent(b.name)}` as never)}
                 activeOpacity={0.8}
               >
-                <View style={[styles.catCircle, { backgroundColor: b.color }]}>
+                <View style={[styles.catCircle, { backgroundColor: "#fff" }]}>
                   <Image
                     source={{ uri: b.logo }}
-                    style={{ width: 40, height: 40, resizeMode: "contain" }}
+                    style={{ width: 52, height: 52, resizeMode: "contain" }}
                   />
                 </View>
                 <Text style={styles.catName}>{b.name}</Text>
@@ -537,11 +545,12 @@ const styles = StyleSheet.create({
   catItem: { alignItems: "center", width: 72 },
   catCircle: {
     width: 60, height: 60, borderRadius: 30,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: "#fff",
     alignItems: "center", justifyContent: "center",
     overflow: "hidden",
     shadowColor: "#000", shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06, shadowRadius: 3, elevation: 2,
+    shadowOpacity: 0.08, shadowRadius: 4, elevation: 2,
+    borderWidth: 0.5, borderColor: "#E5E7EB",
   },
   catImg: { width: 60, height: 60 },
   catName: { fontSize: 11, fontWeight: "600", color: "#374151", textAlign: "center", marginTop: 6, lineHeight: 14 },
