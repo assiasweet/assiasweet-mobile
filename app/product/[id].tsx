@@ -319,7 +319,7 @@ export default function ProductDetailScreen() {
                 const simPrice = getProductPrice(item);
                 return (
                   <TouchableOpacity
-                    onPress={() => nav.push(`/product/${item.id}`)}
+                    onPress={() => nav.push(`/product/${item.slug || item.id}`)}
                     style={{
                       width: 140,
                       backgroundColor: "white",

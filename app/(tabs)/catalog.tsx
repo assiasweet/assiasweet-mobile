@@ -25,7 +25,7 @@ function ProductListCard({ product }: { product: Product }) {
 
   return (
     <TouchableOpacity
-      onPress={() => nav.push(`/product/${product.id}`)}
+      onPress={() => nav.push(`/product/${product.slug || product.id}`)}
       style={{
         flexDirection: "row",
         backgroundColor: "white",

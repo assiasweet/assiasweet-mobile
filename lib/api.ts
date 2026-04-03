@@ -261,8 +261,13 @@ export async function getProducts(filters: ProductFilters = {}): Promise<Product
 }
 
 export async function getProduct(idOrSlug: string): Promise<Product> {
-  // Route : /api/produits/{slug}
-  return request<Product>(`/produits/${idOrSlug}`);
+  // Route : /api/produits/{slug} — retourne { product: {...} }
+  const data = await request<{ product: Product } | Product>(`/produits/${idOrSlug}`);
+  // L'API retourne { product: {...} } — on dépaquette si nécessaire
+  if (data && typeof data === 'object' && 'product' in data && data.product) {
+    return (data as { product: Product }).product;
+  }
+  return data as Product;
 }
 
 export async function getCategories(): Promise<{ categories: Category[] }> {

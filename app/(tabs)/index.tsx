@@ -143,7 +143,7 @@ const ProductCard = memo(function ProductCard({ item, onAdd }: { item: Product; 
     <Animated.View style={[styles.card, cardAnim]}>
       <Pressable
         style={{ flex: 1 }}
-        onPress={() => router.push(`/product/${item.id}` as never)}
+        onPress={() => router.push(`/product/${item.slug || item.id}` as never)}
         onPressIn={() => { scale.value = withSpring(0.97, { damping: 15, stiffness: 200 }); }}
         onPressOut={() => { scale.value = withSpring(1, { damping: 15, stiffness: 200 }); }}
       >
