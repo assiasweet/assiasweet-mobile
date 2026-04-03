@@ -1,10 +1,9 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, memo } from "react";
 import {
   View,
   Text,
   ScrollView,
   FlatList,
-  Image,
   TouchableOpacity,
   TextInput,
   StyleSheet,
@@ -13,6 +12,7 @@ import {
   RefreshControl,
   Pressable,
 } from "react-native";
+import { Image } from "expo-image";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -21,6 +21,7 @@ import Animated, {
   Easing,
 } from "react-native-reanimated";
 import { LinearGradient } from "expo-linear-gradient";
+import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
 import { router } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useAuthStore } from "@/store/auth";
@@ -64,6 +65,18 @@ type Banner = {
   bg: string;
 };
 
+// Mapping slug catégorie → icône statique sur assiasweet.vercel.app
+const CATEGORY_ICONS: Record<string, string> = {
+  "bonbon-en-vrac": "https://assiasweet.vercel.app/bonbon_en_vrac.png",
+  "sucettes": "https://assiasweet.vercel.app/sucettes.png",
+  "chewing-gum": "https://assiasweet.vercel.app/chewing_gum.png",
+  "jumbos-ceintures": "https://assiasweet.vercel.app/jumbos_et_ceintures.png",
+  "snacking": "https://assiasweet.vercel.app/snacking.png",
+  "gadgets-sprays": "https://assiasweet.vercel.app/gadjets.png",
+  "tubos-presentoirs": "https://assiasweet.vercel.app/presentoirs.png",
+  "destockage": "https://assiasweet.vercel.app/destock.png",
+  "promotions": "https://assiasweet.vercel.app/destock.png",
+};
 function buildBannersFromCategories(cats: Category[]): Banner[] {
   const map: Record<string, { title: string; subtitle: string; cta: string; bg: string }> = {
     "bonbon-en-vrac": { title: "Bonbons en Vrac", subtitle: "Achetez au poids, prix grossiste HT", cta: "Voir les bonbons", bg: "#E91E7B" },
@@ -105,7 +118,7 @@ function FadeInSection({ children, delay = 0 }: { children: React.ReactNode; del
 }
 
 // ─── Composant Card Produit ───────────────────────────────────────────────────
-function ProductCard({ item, onAdd }: { item: Product; onAdd: (p: Product) => void }) {
+const ProductCard = memo(function ProductCard({ item, onAdd }: { item: Product; onAdd: (p: Product) => void }) {
   const img = getProductImage(item);
   const price = getProductPrice(item);
   const halal = isProductHalal(item);
@@ -125,7 +138,7 @@ function ProductCard({ item, onAdd }: { item: Product; onAdd: (p: Product) => vo
         {/* Image */}
         <View style={styles.cardImgWrap}>
           {img ? (
-            <Image source={{ uri: img }} style={styles.cardImg} resizeMode="cover" />
+            <Image source={{ uri: img }} style={styles.cardImg} contentFit="cover" cachePolicy="memory-disk" />
           ) : (
             <View style={[styles.cardImg, styles.cardImgPlaceholder]}>
               <View style={styles.cardPlaceholderIcon}>
@@ -171,9 +184,8 @@ function ProductCard({ item, onAdd }: { item: Product; onAdd: (p: Product) => vo
       </Pressable>
     </Animated.View>
   );
-}
-
-// ─── Composant Section Header ───────────────────────────────────────────────────
+});
+// ─── Composant Section Headerr ───────────────────────────────────────────────────
 function SectionHeader({ title, onSeeAll }: { title: string; onSeeAll?: () => void }) {
   return (
     <View style={styles.sectionHeader}>
@@ -278,67 +290,56 @@ export default function HomeScreen() {
 
   return (
     <ScreenContainer containerClassName="bg-[#FAFAFA]" edges={["top", "left", "right"]}>
-      {/* ── HEADER ── */}
-      <LinearGradient
-        colors={["#fff", "#fff"]}
-        style={styles.header}
-      >
-        <View style={styles.headerLeft}>
-          <View style={styles.headerLogoWrap}>
-            <Image
-              source={require("@/assets/images/assiasweet-logo.png")}
-              style={styles.headerLogo}
-              resizeMode="contain"
-            />
-          </View>
-          <View>
-            <Text style={styles.headerGreeting}>Bonjour{firstName ? ` ${firstName}` : ""}</Text>
-            <Text style={styles.headerCompany}>{company || "AssiaSweet B2B"}</Text>
-          </View>
+      {/* ── HEADER COMPACT ── */}
+      <View style={styles.header}>
+        {/* Barre de recherche */}
+        <View style={styles.searchBar}>
+          {/* Icône loupe SVG */}
+          <Svg width={18} height={18} viewBox="0 0 24 24" style={{ marginRight: 8 }}>
+            <Circle cx="11" cy="11" r="7" stroke="#E91E7B" strokeWidth="2" fill="none" />
+            <Line x1="16.5" y1="16.5" x2="22" y2="22" stroke="#E91E7B" strokeWidth="2" strokeLinecap="round" />
+          </Svg>
+          <TextInput
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Rechercher un produit, une marque..."
+            placeholderTextColor="#C4C4C4"
+            style={styles.searchInput}
+            returnKeyType="search"
+            onSubmitEditing={handleSearch}
+          />
         </View>
-        <View style={styles.headerRight}>
-          <Pressable
-            style={({ pressed }) => [styles.headerIconBtn, pressed && { opacity: 0.7, transform: [{ scale: 0.93 }] }]}
-            onPress={() => router.push("/(tabs)/cart" as never)}
-          >
-            {/* Icône panier : sac de shopping */}
-            <View style={styles.cartIconWrap}>
-              {/* Corps du sac */}
-              <View style={styles.cartBagBody} />
-              {/* Anse du sac */}
-              <View style={styles.cartBagHandle} />
+        {/* Logo */}
+        <View style={styles.headerLogoWrap}>
+          <Image
+            source={require("@/assets/images/assiasweet-logo.png")}
+            style={styles.headerLogo}
+            contentFit="contain"
+          />
+        </View>
+        {/* Panier */}
+        <Pressable
+          style={({ pressed }) => [styles.headerCartBtn, pressed && { opacity: 0.7, transform: [{ scale: 0.93 }] }]}
+          onPress={() => router.push("/(tabs)/cart" as never)}
+        >
+          {/* Icône panier SVG */}
+          <Svg width={22} height={22} viewBox="0 0 24 24">
+            <Path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" stroke="#E91E7B" strokeWidth="2" fill="none" strokeLinejoin="round" />
+            <Line x1="3" y1="6" x2="21" y2="6" stroke="#E91E7B" strokeWidth="2" strokeLinecap="round" />
+            <Path d="M16 10a4 4 0 01-8 0" stroke="#E91E7B" strokeWidth="2" fill="none" strokeLinecap="round" />
+          </Svg>
+          {cartCount > 0 && (
+            <View style={styles.headerBadge}>
+              <Text style={styles.headerBadgeText}>{cartCount > 9 ? "9+" : cartCount}</Text>
             </View>
-            {cartCount > 0 && (
-              <View style={styles.headerBadge}>
-                <Text style={styles.headerBadgeText}>{cartCount > 9 ? "9+" : cartCount}</Text>
-              </View>
-            )}
-          </Pressable>
-        </View>
-      </LinearGradient>
-
+          )}
+        </Pressable>
+      </View>
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadData(); }} tintColor="#E91E7B" />}
         contentContainerStyle={{ paddingBottom: 32 }}
-      >
-        {/* ── BARRE DE RECHERCHE ── */}
-        <View style={styles.searchWrap}>
-          <View style={styles.searchBar}>
-            {/* Icône loupe Material */}
-            <Text style={{ fontSize: 18, color: "#E91E7B", marginRight: 8 }}>🔍</Text>
-            <TextInput
-              value={search}
-              onChangeText={setSearch}
-              placeholder="Rechercher un produit, une marque..."
-              placeholderTextColor="#C4C4C4"
-              style={styles.searchInput}
-              returnKeyType="search"
-              onSubmitEditing={handleSearch}
-            />
-          </View>
-        </View>
-
+       >
         {/* ── SLIDER BANNIÈRES ── */}
         <View style={{ marginBottom: 24 }}>
           {banners.length > 0 ? (
@@ -363,7 +364,7 @@ export default function HomeScreen() {
                     onPress={() => router.push(`/(tabs)/catalog?cat=${b.id}` as never)}
                   >
                     {b.imageUrl && (
-                      <Image source={{ uri: b.imageUrl }} style={styles.bannerBgImg} resizeMode="cover" />
+                      <Image source={{ uri: b.imageUrl }} style={styles.bannerBgImg} contentFit="cover" cachePolicy="memory-disk" />
                     )}
                     <View style={[styles.bannerOverlay, { backgroundColor: b.bg + "CC" }]} />
                     <View style={styles.bannerContent}>
@@ -410,10 +411,15 @@ export default function HomeScreen() {
                   activeOpacity={0.8}
                 >
                   <View style={styles.catCircle}>
-                    {cat.imageUrl ? (
-                      <Image source={{ uri: cat.imageUrl }} style={styles.catImg} resizeMode="cover" />
+                    {(CATEGORY_ICONS[cat.slug] || cat.imageUrl) ? (
+                      <Image
+                        source={{ uri: CATEGORY_ICONS[cat.slug] || cat.imageUrl }}
+                        style={styles.catImg}
+                        contentFit="contain"
+                        cachePolicy="memory-disk"
+                      />
                     ) : (
-                      <Text style={{ fontSize: 24 }}>🍬</Text>
+                      <Text style={{ fontSize: 24 }}>A</Text>
                     )}
                   </View>
                   <Text style={styles.catName} numberOfLines={2}>{cat.name}</Text>
@@ -448,6 +454,10 @@ export default function HomeScreen() {
               keyExtractor={(p) => p.id}
               contentContainerStyle={{ paddingHorizontal: 16 }}
               ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
+              removeClippedSubviews
+              maxToRenderPerBatch={6}
+              windowSize={5}
+              initialNumToRender={4}
               renderItem={({ item }) => (
                 <View style={{ width: CARD_W }}>
                   <ProductCard item={item} onAdd={handleAddToCart} />
@@ -471,7 +481,9 @@ export default function HomeScreen() {
                 <View style={[styles.catCircle, { backgroundColor: "#fff" }]}>
                   <Image
                     source={{ uri: b.logo }}
-                    style={{ width: 52, height: 52, resizeMode: "contain" }}
+                    style={{ width: 52, height: 52 }}
+                    contentFit="contain"
+                    cachePolicy="memory-disk"
                   />
                 </View>
                 <Text style={styles.catName}>{b.name}</Text>
@@ -494,6 +506,10 @@ export default function HomeScreen() {
               keyExtractor={(p) => p.id}
               contentContainerStyle={{ paddingHorizontal: 16 }}
               ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
+              removeClippedSubviews
+              maxToRenderPerBatch={6}
+              windowSize={5}
+              initialNumToRender={4}
               renderItem={({ item }) => (
                 <View style={{ width: CARD_W }}>
                   <ProductCard item={item} onAdd={handleAddToCart} />
@@ -517,6 +533,10 @@ export default function HomeScreen() {
               keyExtractor={(p) => `youlike-${p.id}`}
               contentContainerStyle={{ paddingHorizontal: 16 }}
               ItemSeparatorComponent={() => <View style={{ width: 12 }} />}
+              removeClippedSubviews
+              maxToRenderPerBatch={6}
+              windowSize={5}
+              initialNumToRender={4}
               renderItem={({ item }) => (
                 <View style={{ width: CARD_W }}>
                   <ProductCard item={item} onAdd={handleAddToCart} />
@@ -578,13 +598,13 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  // Header
+  // Header compact (recherche + logo + panier sur une ligne)
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
     backgroundColor: "#fff",
     borderBottomWidth: 0.5,
     borderBottomColor: "rgba(0,0,0,0.06)",
@@ -594,57 +614,22 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  headerLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
   headerLogoWrap: {
-    width: 44, height: 44, borderRadius: 14,
+    width: 38, height: 38, borderRadius: 12,
     backgroundColor: "#FFF0F7",
     alignItems: "center", justifyContent: "center",
     overflow: "hidden",
     borderWidth: 1, borderColor: "rgba(233,30,123,0.12)",
+    flexShrink: 0,
   },
-  headerLogo: { width: 36, height: 36 },
-  headerGreeting: { fontSize: 16, fontWeight: "700", color: "#1E1E1E", letterSpacing: -0.3 },
-  headerCompany: { fontSize: 12, color: "#E91E7B", marginTop: 1, fontWeight: "500" },
-  headerRight: { flexDirection: "row", gap: 8 },
-  headerIconBtn: {
-    width: 44, height: 44, borderRadius: 22,
+  headerLogo: { width: 30, height: 30 },
+  headerCartBtn: {
+    width: 40, height: 40, borderRadius: 20,
     backgroundColor: "#FFF0F7",
     alignItems: "center", justifyContent: "center",
     position: "relative",
     borderWidth: 1, borderColor: "rgba(233,30,123,0.1)",
-  },
-  cartIconWrap: {
-    width: 26, height: 26,
-    alignItems: "center", justifyContent: "center",
-    position: "relative",
-  },
-  cartBagBody: {
-    position: "absolute",
-    bottom: 0, left: 1,
-    width: 24, height: 16,
-    borderRadius: 4,
-    backgroundColor: "#E91E7B",
-  },
-  cartBagHandle: {
-    position: "absolute",
-    top: 0, left: 6,
-    width: 14, height: 10,
-    borderTopLeftRadius: 7, borderTopRightRadius: 7,
-    borderWidth: 2.5, borderColor: "#E91E7B",
-    borderBottomWidth: 0,
-    backgroundColor: "transparent",
-  },
-  cartIconWheel1: {
-    position: "absolute",
-    bottom: 0, left: 4,
-    width: 5, height: 5, borderRadius: 2.5,
-    backgroundColor: "#E91E7B",
-  },
-  cartIconWheel2: {
-    position: "absolute",
-    bottom: 0, right: 3,
-    width: 5, height: 5, borderRadius: 2.5,
-    backgroundColor: "#E91E7B",
+    flexShrink: 0,
   },
   headerBadge: {
     position: "absolute", top: -3, right: -3,
@@ -654,34 +639,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4, borderWidth: 2, borderColor: "#fff",
   },
   headerBadgeText: { color: "#fff", fontSize: 9, fontWeight: "800" },
-
-  // Recherche
-  searchWrap: { paddingHorizontal: 16, paddingVertical: 12 },
+  // Barre de recherche intégrée dans le header
   searchBar: {
+    flex: 1,
     flexDirection: "row", alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 16, paddingHorizontal: 16,
-    height: 50,
-    shadowColor: "#E91E7B", shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08, shadowRadius: 8, elevation: 3,
-    borderWidth: 1, borderColor: "rgba(233,30,123,0.1)",
+    backgroundColor: "#F5F5F5",
+    borderRadius: 14, paddingHorizontal: 12,
+    height: 42,
+    borderWidth: 1, borderColor: "rgba(233,30,123,0.08)",
   },
-  searchIconWrap: {
-    width: 20, height: 20, marginRight: 10,
-    alignItems: "center", justifyContent: "center",
-  },
-  searchIconCircle: {
-    width: 14, height: 14, borderRadius: 7,
-    borderWidth: 2, borderColor: "#9CA3AF",
-  },
-  searchIconHandle: {
-    position: "absolute", bottom: 0, right: 0,
-    width: 6, height: 2, borderRadius: 1,
-    backgroundColor: "#9CA3AF",
-    transform: [{ rotate: "45deg" }],
-  },
-  searchIcon: { fontSize: 16, marginRight: 8 },
-  searchInput: { flex: 1, fontSize: 15, color: "#1E1E1E", fontWeight: "400" },
+  searchInput: { flex: 1, fontSize: 14, color: "#1E1E1E", fontWeight: "400" },
 
   // Bannière
   banner: {
