@@ -65,6 +65,18 @@ type Banner = {
   bg: string;
 };
 
+// Labels courts pour les catégories (évite la troncature)
+const CATEGORY_SHORT_LABELS: Record<string, string> = {
+  "bonbon-en-vrac": "Vrac",
+  "sucettes": "Sucettes",
+  "chewing-gum": "Chewing",
+  "jumbos-ceintures": "Jumbos",
+  "snacking": "Snacking",
+  "gadgets-sprays": "Gadgets",
+  "tubos-presentoirs": "Tubos",
+  "destockage": "Déstock",
+  "promotions": "Promos",
+};
 // Mapping slug catégorie → icône statique sur assiasweet.vercel.app
 const CATEGORY_ICONS: Record<string, string> = {
   "bonbon-en-vrac": "https://assiasweet.vercel.app/bonbon_en_vrac.png",
@@ -366,7 +378,12 @@ export default function HomeScreen() {
                     {b.imageUrl && (
                       <Image source={{ uri: b.imageUrl }} style={styles.bannerBgImg} contentFit="cover" cachePolicy="memory-disk" />
                     )}
-                    <View style={[styles.bannerOverlay, { backgroundColor: b.bg + "CC" }]} />
+                    <LinearGradient
+                      colors={[b.bg + "CC", b.bg + "44", "transparent"]}
+                      start={{ x: 0, y: 0.5 }}
+                      end={{ x: 1, y: 0.5 }}
+                      style={styles.bannerOverlay}
+                    />
                     <View style={styles.bannerContent}>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.bannerTitle}>{b.title}</Text>
@@ -422,7 +439,7 @@ export default function HomeScreen() {
                       <Text style={{ fontSize: 24 }}>A</Text>
                     )}
                   </View>
-                  <Text style={styles.catName} numberOfLines={2}>{cat.name}</Text>
+                  <Text style={styles.catName} numberOfLines={1}>{CATEGORY_SHORT_LABELS[cat.slug] || cat.name}</Text>
                 </TouchableOpacity>
               ))}
               {/* Voir toutes */}
@@ -434,7 +451,7 @@ export default function HomeScreen() {
                 <View style={[styles.catCircle, { backgroundColor: "#FCE4F0" }]}>
                   <Text style={{ fontSize: 22 }}>⊞</Text>
                 </View>
-                <Text style={styles.catName}>Toutes{"\n"}les catégories</Text>
+                <Text style={styles.catName} numberOfLines={1}>Toutes</Text>
               </TouchableOpacity>
             </ScrollView>
           )}
@@ -695,9 +712,9 @@ const styles = StyleSheet.create({
   // Catégories
   catScroll: { paddingHorizontal: 16, paddingRight: 16 },
   catItemGap: { width: 14 },
-  catItem: { alignItems: "center", width: 76 },
+  catItem: { alignItems: "center", width: 80 },
   catCircle: {
-    width: 64, height: 64, borderRadius: 32,
+    width: 68, height: 68, borderRadius: 34,
     backgroundColor: "#fff",
     alignItems: "center", justifyContent: "center",
     overflow: "hidden",
@@ -705,8 +722,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1, shadowRadius: 8, elevation: 3,
     borderWidth: 1, borderColor: "rgba(233,30,123,0.08)",
   },
-  catImg: { width: 64, height: 64 },
-  catName: { fontSize: 11, fontWeight: "600", color: "#374151", textAlign: "center", marginTop: 7, lineHeight: 14 },
+  catImg: { width: 68, height: 68 },
+  catName: { fontSize: 10, fontWeight: "600", color: "#374151", textAlign: "center", marginTop: 6, lineHeight: 13 },
 
   // Card produit
   card: {

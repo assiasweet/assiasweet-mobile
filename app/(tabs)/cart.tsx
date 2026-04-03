@@ -182,18 +182,23 @@ export default function CartScreen() {
             {!isMinimumReached && (
               <View
                 style={{
-                  backgroundColor: "#FEF3C7",
-                  borderRadius: 12,
-                  padding: 12,
+                  backgroundColor: "#FFF0F7",
+                  borderRadius: 14,
+                  padding: 14,
                   marginBottom: 16,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: 8,
+                  borderWidth: 1,
+                  borderColor: "rgba(233,30,123,0.12)",
                 }}
               >
-                <Text style={{ fontSize: 18 }}>⚠️</Text>
-                <Text style={{ flex: 1, color: "#92400E", fontSize: 13, lineHeight: 18 }}>
-                  Encore <Text style={{ fontWeight: "700" }}>{remaining.toFixed(2)} € HT</Text> pour atteindre le minimum de commande (100€ HT)
+                <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
+                  <Text style={{ fontSize: 12, fontWeight: "600", color: "#E91E7B" }}>Minimum de commande</Text>
+                  <Text style={{ fontSize: 12, fontWeight: "700", color: "#E91E7B" }}>{subtotalHT.toFixed(2)} € / 100 € HT</Text>
+                </View>
+                <View style={{ height: 6, backgroundColor: "rgba(233,30,123,0.15)", borderRadius: 3, overflow: "hidden" }}>
+                  <View style={{ height: 6, width: `${Math.min((subtotalHT / 100) * 100, 100)}%` as any, backgroundColor: "#E91E7B", borderRadius: 3 }} />
+                </View>
+                <Text style={{ fontSize: 11, color: "#9CA3AF", marginTop: 6 }}>
+                  Encore <Text style={{ fontWeight: "700", color: "#E91E7B" }}>{remaining.toFixed(2)} € HT</Text> pour valider la commande
                 </Text>
               </View>
             )}
@@ -224,9 +229,9 @@ export default function CartScreen() {
                   {totalTVA.toFixed(2)} €
                 </Text>
               </View>
-              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                 <Text style={{ color: "#6B7280", fontSize: 14 }}>Frais de port</Text>
-                <Text style={{ color: "#6B7280", fontSize: 14 }}>Calculés à l'étape suivante</Text>
+                <Text style={{ color: "#9CA3AF", fontSize: 12, fontStyle: "italic" }}>Calculés ensuite</Text>
               </View>
               <View
                 style={{
@@ -263,16 +268,18 @@ export default function CartScreen() {
         <TouchableOpacity
           onPress={handleOrder}
           style={{
-            backgroundColor: isMinimumReached ? "#E91E7B" : "#9CA3AF",
+            backgroundColor: isMinimumReached ? "#E91E7B" : "#F3F4F6",
             borderRadius: 16,
             paddingVertical: 16,
             alignItems: "center",
+            borderWidth: isMinimumReached ? 0 : 1,
+            borderColor: "#E5E7EB",
           }}
         >
-          <Text style={{ color: "white", fontSize: 16, fontWeight: "700" }}>
+          <Text style={{ color: isMinimumReached ? "white" : "#9CA3AF", fontSize: 16, fontWeight: "700" }}>
             {isMinimumReached
               ? `Commander — ${totalTTC.toFixed(2)} € TTC`
-              : `Minimum non atteint (${remaining.toFixed(2)} € restants)`}
+              : `Il manque ${remaining.toFixed(2)} € HT pour commander`}
           </Text>
         </TouchableOpacity>
       </View>
