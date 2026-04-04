@@ -29,6 +29,12 @@ export function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
   const overlayOpacity = useSharedValue(1);
 
   useEffect(() => {
+    // Timeout de sécurité : force onFinish après 3s si Reanimated ne le déclenche pas
+    // (peut arriver au redémarrage depuis l'arrière-plan)
+    const safetyTimer = setTimeout(() => {
+      onFinish();
+    }, 3000);
+
     // Cercles roses clairs qui s'expandent
     circle3Opacity.value = withTiming(1, { duration: 300 });
     circle3Scale.value = withTiming(1, { duration: 600, easing: Easing.out(Easing.cubic) });
@@ -49,8 +55,13 @@ export function AnimatedSplash({ onFinish }: AnimatedSplashProps) {
 
     // Fade out
     overlayOpacity.value = withDelay(2000, withTiming(0, { duration: 450, easing: Easing.in(Easing.cubic) }, (finished) => {
-      if (finished) runOnJS(onFinish)();
+      if (finished) {
+        clearTimeout(safetyTimer);
+        runOnJS(onFinish)();
+      }
     }));
+
+    return () => clearTimeout(safetyTimer);
   }, []);
 
   const logoStyle = useAnimatedStyle(() => ({

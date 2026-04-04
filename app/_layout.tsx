@@ -1,10 +1,11 @@
 "use no memo";
 import "@/global.css";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { AppState } from "react-native";
 import { AnimatedSplash } from "@/components/animated-splash";
 import { StaffBanner } from "@/components/staff-banner";
 import { isStaffApp, PRIMARY_COLOR } from "@/lib/app-variant";
@@ -32,12 +33,30 @@ export const unstable_settings = { initialRouteName: isStaffApp ? "(staff)" : "(
 
 export default function RootLayout() {
   const [splashDone, setSplashDone] = useState(false);
+  const splashDoneRef = useRef(false);
   const initialize = useAuthStore((s) => s.initialize);
 
   // Initialiser l'auth au démarrage de l'app
   useEffect(() => {
     initialize();
   }, []);
+
+  // Quand l'app revient en avant-plan depuis l'arrière-plan,
+  // ne pas rejouer le splash (splashDone reste true)
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active" && splashDoneRef.current) {
+        // S'assurer que splashDone est bien true (ne pas réinitialiser)
+        setSplashDone(true);
+      }
+    });
+    return () => sub.remove();
+  }, []);
+
+  const handleSplashFinish = () => {
+    splashDoneRef.current = true;
+    setSplashDone(true);
+  };
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -58,7 +77,7 @@ export default function RootLayout() {
           <Stack.Screen name="invoices" options={{ headerShown: true, title: "Mes factures", headerTintColor: "#E91E7B" }} />
           <Stack.Screen name="oauth/callback" />
         </Stack>
-        {!splashDone && <AnimatedSplash onFinish={() => setSplashDone(true)} />}
+        {!splashDone && <AnimatedSplash onFinish={handleSplashFinish} />}
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
