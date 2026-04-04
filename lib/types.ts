@@ -26,7 +26,7 @@ export interface StaffUser {
   id: string;
   name: string;
   email: string;
-  role: "SUPER_ADMIN" | "ADMIN" | "STAFF";
+  role: "SUPER_ADMIN" | "ADMIN" | "STAFF" | "COMMERCIAL" | "PREPARATEUR" | "COMPTABLE";
   permissions?: string[];
   isActive: boolean;
 }

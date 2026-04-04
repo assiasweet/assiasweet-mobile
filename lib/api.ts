@@ -225,7 +225,33 @@ export async function loginStaff(
 }
 
 export async function getStaffProfile(): Promise<StaffUser> {
-  return request<StaffUser>("/admin/me", {}, "staff");
+  // /api/admin/me uses NextAuth session (not Bearer JWT) → decode JWT locally instead
+  const token = await getStaffToken();
+  if (!token) throw new Error("No staff token");
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) throw new Error("Invalid JWT");
+    const payload = JSON.parse(
+      decodeURIComponent(
+        atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"))
+          .split("")
+          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+          .join("")
+      )
+    );
+    // Check expiry
+    if (payload.exp && payload.exp * 1000 < Date.now()) {
+      throw new Error("Staff token expired");
+    }
+    return {
+      id: payload.id,
+      email: payload.email,
+      name: payload.name,
+      role: payload.role,
+    } as StaffUser;
+  } catch (e) {
+    throw new Error("Invalid staff token: " + String(e));
+  }
 }
 
 export async function logoutStaff(): Promise<void> {
