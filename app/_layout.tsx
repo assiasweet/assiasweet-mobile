@@ -6,13 +6,15 @@ import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AnimatedSplash } from "@/components/animated-splash";
+import { StaffBanner } from "@/components/staff-banner";
+import { isStaffApp, PRIMARY_COLOR } from "@/lib/app-variant";
 
 // Apply theme CSS variables directly on web
 if (typeof document !== "undefined") {
   const root = document.documentElement;
   root.dataset.theme = "light";
   const vars: Record<string, string> = {
-    "--color-primary": "#E91E7B",
+    "--color-primary": isStaffApp ? "#1A5C2A" : "#E91E7B",
     "--color-background": "#ffffff",
     "--color-surface": "#f5f5f5",
     "--color-foreground": "#11181C",
@@ -34,6 +36,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <StatusBar style={splashDone ? "auto" : "light"} />
+        <StaffBanner />
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="index" />
           <Stack.Screen name="(auth)" />

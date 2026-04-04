@@ -2,86 +2,94 @@
 import "./scripts/load-env.js";
 import type { ExpoConfig } from "expo/config";
 
-// Bundle ID format: space.manus.<project_name_dots>.<timestamp>
-// e.g., "my-app" created at 2024-01-15 10:30:45 -> "space.manus.my.app.t20240115103045"
-// Bundle ID can only contain letters, numbers, and dots
-// Android requires each dot-separated segment to start with a letter
-const rawBundleId = "space.manus.assiasweet.mobile.t20260402120922";
-const bundleId =
-  rawBundleId
-    .replace(/[-_]/g, ".") // Replace hyphens/underscores with dots
-    .replace(/[^a-zA-Z0-9.]/g, "") // Remove invalid chars
-    .replace(/\.+/g, ".") // Collapse consecutive dots
-    .replace(/^\.+|\.+$/g, "") // Trim leading/trailing dots
-    .toLowerCase()
-    .split(".")
-    .map((segment) => {
-      // Android requires each segment to start with a letter
-      // Prefix with 'x' if segment starts with a digit
-      return /^[a-zA-Z]/.test(segment) ? segment : "x" + segment;
-    })
-    .join(".") || "space.manus.app";
-// Extract timestamp from bundle ID and prefix with "manus" for deep link scheme
-// e.g., "space.manus.my.app.t20240115103045" -> "manus20240115103045"
-const timestamp = bundleId.split(".").pop()?.replace(/^t/, "") ?? "";
-const schemeFromBundleId = `manus${timestamp}`;
+// ─────────────────────────────────────────────────────────────────────────────
+// APP_VARIANT : "client" (défaut) | "staff"
+// Injecté via la variable d'environnement APP_VARIANT au moment du build EAS.
+// ─────────────────────────────────────────────────────────────────────────────
+const APP_VARIANT = (process.env.APP_VARIANT ?? "client") as "client" | "staff";
+const isStaff = APP_VARIANT === "staff";
 
-const env = {
-  // App branding - update these values directly (do not use env vars)
-  appName: "AssiaSweet",
-  appSlug: "assiasweet",
-  // S3 URL of the app logo - set this to the URL returned by generate_image when creating custom logo
-  // Leave empty to use the default icon from assets/images/icon.png
-  logoUrl: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663351627308/rSoqYBWvNEfAhgCm.png",
-  scheme: schemeFromBundleId,
-  iosBundleId: bundleId,
-  androidPackage: bundleId,
-};
+// Bundle IDs fixes (pas générés dynamiquement)
+const CLIENT_BUNDLE_ID = "com.assiasweet.client";
+const STAFF_BUNDLE_ID  = "com.assiasweet.staff";
+
+// Schéma de deep link
+const CLIENT_SCHEME = "assiasweet";
+const STAFF_SCHEME  = "assiasweet-staff";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Identité visuelle par variante
+// ─────────────────────────────────────────────────────────────────────────────
+const variant = {
+  client: {
+    appName:        "AssiaSweet",
+    appSlug:        "assiasweet",
+    bundleId:       CLIENT_BUNDLE_ID,
+    scheme:         CLIENT_SCHEME,
+    icon:           "./assets/images/icon-client.png",
+    splashIcon:     "./assets/images/splash-icon-client.png",
+    splashBg:       "#ffffff",
+    adaptiveBg:     "#E91E7B",
+    adaptiveFg:     "./assets/images/android-icon-foreground-client.png",
+    primaryColor:   "#E91E7B",
+    logoUrl:        "https://files.manuscdn.com/user_upload_by_module/session_file/310519663351627308/rSoqYBWvNEfAhgCm.png",
+  },
+  staff: {
+    appName:        "AssiaSweet Staff",
+    appSlug:        "assiasweet",   // slug EAS immuable
+    bundleId:       STAFF_BUNDLE_ID,
+    scheme:         STAFF_SCHEME,
+    icon:           "./assets/images/icon-staff.png",
+    splashIcon:     "./assets/images/splash-icon-staff.png",
+    splashBg:       "#f0faf2",
+    adaptiveBg:     "#1A5C2A",
+    adaptiveFg:     "./assets/images/android-icon-foreground-staff.png",
+    primaryColor:   "#1A5C2A",
+    logoUrl:        "",
+  },
+} as const;
+
+const v = isStaff ? variant.staff : variant.client;
 
 const config: ExpoConfig = {
-  name: env.appName,
-  slug: env.appSlug,
-  version: "1.0.0",
+  name:        v.appName,
+  slug:        v.appSlug,
+  version:     "1.0.0",
   orientation: "portrait",
-  icon: "./assets/images/icon.png",
-  scheme: env.scheme,
+  icon:        v.icon,
+  scheme:      v.scheme,
   userInterfaceStyle: "automatic",
   newArchEnabled: true,
   ios: {
     supportsTablet: true,
-    bundleIdentifier: env.iosBundleId,
-    "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
-      }
+    bundleIdentifier: v.bundleId,
+    infoPlist: {
+      ITSAppUsesNonExemptEncryption: false,
+    },
   },
   android: {
     adaptiveIcon: {
-      backgroundColor: "#E91E7B",
-      foregroundImage: "./assets/images/android-icon-foreground.png",
-      backgroundImage: "./assets/images/android-icon-background.png",
-      monochromeImage: "./assets/images/android-icon-monochrome.png",
+      backgroundColor:  v.adaptiveBg,
+      foregroundImage:  v.adaptiveFg,
+      backgroundImage:  "./assets/images/android-icon-background.png",
+      monochromeImage:  "./assets/images/android-icon-monochrome.png",
     },
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
-    package: env.androidPackage,
+    package: v.bundleId,
     permissions: ["POST_NOTIFICATIONS"],
     intentFilters: [
       {
-        action: "VIEW",
+        action:     "VIEW",
         autoVerify: true,
-        data: [
-          {
-            scheme: env.scheme,
-            host: "*",
-          },
-        ],
+        data: [{ scheme: v.scheme, host: "*" }],
         category: ["BROWSABLE", "DEFAULT"],
       },
     ],
   },
   web: {
     bundler: "metro",
-    output: "single",
+    output:  "single",
     favicon: "./assets/images/favicon.png",
   },
   plugins: [
@@ -89,51 +97,47 @@ const config: ExpoConfig = {
     [
       "expo-camera",
       {
-        "cameraPermission": "Autoriser $(PRODUCT_NAME) à accéder à votre caméra pour scanner les codes-barres.",
-        "microphonePermission": "Autoriser $(PRODUCT_NAME) à accéder à votre microphone.",
-        "recordAudioAndroid": false
-      }
+        cameraPermission:    "Autoriser $(PRODUCT_NAME) à accéder à votre caméra pour scanner les codes-barres.",
+        microphonePermission: "Autoriser $(PRODUCT_NAME) à accéder à votre microphone.",
+        recordAudioAndroid:  false,
+      },
     ],
     [
       "expo-audio",
-      {
-        microphonePermission: "Allow $(PRODUCT_NAME) to access your microphone.",
-      },
+      { microphonePermission: "Allow $(PRODUCT_NAME) to access your microphone." },
     ],
     [
       "expo-video",
-      {
-        supportsBackgroundPlayback: true,
-        supportsPictureInPicture: true,
-      },
+      { supportsBackgroundPlayback: true, supportsPictureInPicture: true },
     ],
     [
       "expo-splash-screen",
       {
-        image: "./assets/images/splash-icon.png",
-        imageWidth: 200,
-        resizeMode: "contain",
-        backgroundColor: "#ffffff",
-        dark: {
-          backgroundColor: "#000000",
-        },
+        image:       v.splashIcon,
+        imageWidth:  200,
+        resizeMode:  "contain",
+        backgroundColor: v.splashBg,
+        dark: { backgroundColor: "#000000" },
       },
     ],
     [
       "expo-build-properties",
       {
         android: {
-          buildArchs: ["armeabi-v7a", "arm64-v8a"],
+          buildArchs:   ["armeabi-v7a", "arm64-v8a"],
           minSdkVersion: 24,
         },
       },
     ],
   ],
   experiments: {
-    typedRoutes: true,
-    reactCompiler: true,
+    typedRoutes:     true,
+    reactCompiler:   true,
   },
   extra: {
+    // Exposé à l'app via Constants.expoConfig.extra
+    appVariant:   APP_VARIANT,
+    primaryColor: v.primaryColor,
     eas: {
       projectId: "06c5fb81-8ce7-4462-9e3d-9ec6a3f488a4",
     },

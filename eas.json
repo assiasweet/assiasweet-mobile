@@ -29,6 +29,32 @@
       "android": {
         "buildType": "app-bundle"
       }
+    },
+    "production-client": {
+      "autoIncrement": true,
+      "distribution": "store",
+      "env": {
+        "APP_VARIANT": "client"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "ios": {
+        "buildConfiguration": "Release"
+      }
+    },
+    "production-staff": {
+      "autoIncrement": true,
+      "distribution": "internal",
+      "env": {
+        "APP_VARIANT": "staff"
+      },
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "buildConfiguration": "Release"
+      }
     }
   },
   "submit": {

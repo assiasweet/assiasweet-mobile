@@ -14,13 +14,17 @@ import {
 import { router } from "expo-router";
 import { useAuthStore } from "@/store/auth";
 import { ScreenContainer } from "@/components/screen-container";
+import { isStaffApp } from "@/lib/app-variant";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [loginType, setLoginType] = useState<"customer" | "staff">("customer");
+  // Dans l'app staff : toujours en mode staff. Dans l'app client : toujours en mode customer.
+  const [loginType, setLoginType] = useState<"customer" | "staff">(
+    isStaffApp ? "staff" : "customer"
+  );
 
   const loginAsCustomer = useAuthStore((s) => s.loginAsCustomer);
   const loginAsStaff = useAuthStore((s) => s.loginAsStaff);
@@ -116,7 +120,7 @@ export default function LoginScreen() {
             </Text>
           </View>
 
-          {/* Sélecteur Espace Client / Espace Staff */}
+          {/* Sélecteur Espace Client / Espace Staff — masqué dans l'app staff */}
           <View
             style={{
               marginHorizontal: 24,
@@ -125,6 +129,7 @@ export default function LoginScreen() {
               backgroundColor: "#F3F4F6",
               borderRadius: 14,
               padding: 4,
+              display: isStaffApp ? "none" : "flex",
             }}
           >
             <TouchableOpacity

@@ -1,9 +1,10 @@
 import { Tabs } from "expo-router";
-import { Platform, View, Text } from "react-native";
+import { Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
+import { PRIMARY_COLOR } from "@/lib/app-variant";
 
 export default function StaffTabLayout() {
   const colors = useColors();
@@ -14,7 +15,7 @@ export default function StaffTabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#E91E7B",
+        tabBarActiveTintColor: PRIMARY_COLOR,
         tabBarInactiveTintColor: "#9CA3AF",
         headerShown: false,
         tabBarButton: HapticTab,
