@@ -105,3 +105,8 @@
 - [x] Bug 3 — Token JWT retourné dans JSON body de /auth/customer-login
 - [x] Bug 4 — OrderStatus 'confirmed' → 'EN_ATTENTE' et PaymentStatus 'pending' → 'EN_ATTENTE'
 - [x] Tests validation : login ✅, adresses ✅, création commande CMD-2026-9217 ✅, synchro admin ✅
+
+## Bug filtres catalogue (04/04/2026)
+- [x] Bug : produits mal classés par catégorie — corrigé : API filtre par c.slug, app envoie cat=slug
+- [x] Bug : produits mal classés par marque — corrigé : API filtre par UPPER(brand), app envoie brand=nom
+- [x] Vérifier la structure de réponse API /api/produits avec filtres actifs — OK (total, page, totalPages)

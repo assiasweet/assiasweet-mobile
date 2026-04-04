@@ -119,7 +119,7 @@ function ProductListCard({ product }: { product: Product }) {
 }
 
 export default function CatalogScreen() {
-  const params = useLocalSearchParams<{ categoryId?: string; search?: string; filter?: string }>();
+  const params = useLocalSearchParams<{ cat?: string; categoryId?: string; search?: string; filter?: string; brand?: string; q?: string }>();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -131,8 +131,10 @@ export default function CatalogScreen() {
   const [showFilters, setShowFilters] = useState(false);
 
   // Filtres
-  const [search, setSearch] = useState(params.search || "");
-  const [selectedCategory, setSelectedCategory] = useState(params.categoryId || "");
+  const [search, setSearch] = useState(params.search || params.q || "");
+  // Accepte 'cat' (slug) ou 'categoryId' (legacy) depuis la navigation
+  const [selectedCategory, setSelectedCategory] = useState(params.cat || params.categoryId || "");
+  const [selectedBrand, setSelectedBrand] = useState(params.brand || "");
   const [filterHalal, setFilterHalal] = useState(false);
   const [filterNew, setFilterNew] = useState(params.filter === "new");
   const [filterPromo, setFilterPromo] = useState(params.filter === "promo");
@@ -141,6 +143,7 @@ export default function CatalogScreen() {
   const buildFilters = (): ProductFilters => ({
     search: search || undefined,
     category: selectedCategory || undefined,
+    brand: selectedBrand || undefined,
     halal: filterHalal || undefined,
     new: filterNew || undefined,
     promo: filterPromo || undefined,
@@ -175,7 +178,7 @@ export default function CatalogScreen() {
       setRefreshing(false);
       setLoadingMore(false);
     }
-  }, [search, selectedCategory, filterHalal, filterNew, filterPromo, sortBy, page]);
+  }, [search, selectedCategory, selectedBrand, filterHalal, filterNew, filterPromo, sortBy, page]);
 
   useEffect(() => {
     getCategories()
@@ -378,17 +381,17 @@ export default function CatalogScreen() {
                 {categories.map((cat) => (
                   <TouchableOpacity
                     key={cat.id}
-                    onPress={() => setSelectedCategory(cat.id)}
+                    onPress={() => setSelectedCategory(cat.slug)}
                     style={{
                       paddingHorizontal: 14,
                       paddingVertical: 8,
                       borderRadius: 20,
                       borderWidth: 1.5,
-                      borderColor: selectedCategory === cat.id ? "#E91E7B" : "#E5E7EB",
-                      backgroundColor: selectedCategory === cat.id ? "#FCE4F0" : "white",
+borderColor: selectedCategory === cat.slug ? "#E91E7B" : "#E5E7EB",
+                    backgroundColor: selectedCategory === cat.slug ? "#FCE4F0" : "white",
                     }}
                   >
-                    <Text style={{ color: selectedCategory === cat.id ? "#E91E7B" : "#6B7280", fontWeight: "600", fontSize: 13 }}>
+                    <Text style={{ color: selectedCategory === cat.slug ? "#E91E7B" : "#6B7280", fontWeight: "600", fontSize: 13 }}>
                       {cat.name}
                     </Text>
                   </TouchableOpacity>

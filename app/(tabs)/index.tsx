@@ -373,7 +373,7 @@ export default function HomeScreen() {
                   <TouchableOpacity
                     style={[styles.banner, { width: W - 32 }]}
                     activeOpacity={0.95}
-                    onPress={() => router.push(`/(tabs)/catalog?cat=${b.id}` as never)}
+                    onPress={() => router.push(`/(tabs)/catalog?cat=${b.categorySlug || ''}` as never)}
                   >
                     {b.imageUrl && (
                       <Image source={{ uri: b.imageUrl }} style={styles.bannerBgImg} contentFit="cover" cachePolicy="memory-disk" />
