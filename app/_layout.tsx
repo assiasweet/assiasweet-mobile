@@ -1,6 +1,6 @@
 "use no memo";
 import "@/global.css";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -8,6 +8,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AnimatedSplash } from "@/components/animated-splash";
 import { StaffBanner } from "@/components/staff-banner";
 import { isStaffApp, PRIMARY_COLOR } from "@/lib/app-variant";
+import { useAuthStore } from "@/store/auth";
 
 // Apply theme CSS variables directly on web
 if (typeof document !== "undefined") {
@@ -27,10 +28,16 @@ if (typeof document !== "undefined") {
   Object.entries(vars).forEach(([k, v]) => root.style.setProperty(k, v));
 }
 
-export const unstable_settings = { initialRouteName: "(tabs)" };
+export const unstable_settings = { initialRouteName: isStaffApp ? "(staff)" : "(tabs)" };
 
 export default function RootLayout() {
   const [splashDone, setSplashDone] = useState(false);
+  const initialize = useAuthStore((s) => s.initialize);
+
+  // Initialiser l'auth au démarrage de l'app
+  useEffect(() => {
+    initialize();
+  }, []);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

@@ -114,10 +114,25 @@ export default function DashboardScreen() {
     nav.replace("/(auth)/login");
   };
 
+  // Guard : si l'auth est en cours d'initialisation, attendre
+  if (auth.status === "idle" || auth.status === "loading") {
+    return (
+      <ScreenContainer className="items-center justify-center">
+        <ActivityIndicator size="large" color="#1A5C2A" />
+      </ScreenContainer>
+    );
+  }
+
+  // Guard : si non authentifié en tant que staff, rediriger vers login
+  if (auth.status === "unauthenticated" || auth.status === "customer" || auth.status === "pending") {
+    nav.replace("/(auth)/login");
+    return null;
+  }
+
   if (isLoading) {
     return (
       <ScreenContainer className="items-center justify-center">
-        <ActivityIndicator size="large" color="#E91E7B" />
+        <ActivityIndicator size="large" color="#1A5C2A" />
       </ScreenContainer>
     );
   }

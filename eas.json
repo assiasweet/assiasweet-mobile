@@ -31,7 +31,6 @@
       }
     },
     "production-client": {
-      "autoIncrement": true,
       "distribution": "store",
       "env": {
         "APP_VARIANT": "client"
@@ -44,7 +43,6 @@
       }
     },
     "production-staff": {
-      "autoIncrement": true,
       "distribution": "internal",
       "env": {
         "APP_VARIANT": "staff"
