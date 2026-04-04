@@ -110,3 +110,12 @@
 - [x] Bug : produits mal classés par catégorie — corrigé : API filtre par c.slug, app envoie cat=slug
 - [x] Bug : produits mal classés par marque — corrigé : API filtre par UPPER(brand), app envoie brand=nom
 - [x] Vérifier la structure de réponse API /api/produits avec filtres actifs — OK (total, page, totalPages)
+
+## Scanner Stock — Interface Staff (04/04/2026)
+- [x] Lire doc expo-camera pour le scanner de codes-barres EAN
+- [x] Créer l'écran app/staff/scanner.tsx avec caméra + scan EAN (intégré dans products.tsx)
+- [x] Afficher le produit trouvé par EAN (nom, stock actuel, image)
+- [x] Formulaire de mise à jour du stock (quantité + type : ajout/correction)
+- [x] Ajouter la route API PATCH /api/admin/produits/{id}/stock côté Vercel
+- [x] Intégrer l'écran scanner dans la navigation staff existante (bouton dans onglet Produits)
+- [x] Ajouter l'icône scanner dans icon-symbol.tsx (icône ⬛ dans le bouton)

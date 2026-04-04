@@ -431,7 +431,7 @@ export async function updateProductStock(
   stock: number
 ): Promise<Product> {
   return request<Product>(`/admin/produits/${id}`, {
-    method: "PUT",
+    method: "PATCH",
     body: JSON.stringify({ stock }),
   }, "staff");
 }
@@ -439,7 +439,7 @@ export async function updateProductStock(
 export async function getProductByBarcode(barcode: string): Promise<Product | null> {
   try {
     const result = await request<ProductsResponse>(
-      `/admin/produits?barcode=${encodeURIComponent(barcode)}`,
+      `/admin/produits?search=${encodeURIComponent(barcode)}&limit=1`,
       {},
       "staff"
     );
