@@ -119,3 +119,16 @@
 - [x] Ajouter la route API PATCH /api/admin/produits/{id}/stock côté Vercel
 - [x] Intégrer l'écran scanner dans la navigation staff existante (bouton dans onglet Produits)
 - [x] Ajouter l'icône scanner dans icon-symbol.tsx (icône ⬛ dans le bouton)
+
+## Flux de picking — Préparation commandes (04/04/2026)
+
+- [ ] Analyser orders.tsx staff et la structure des données commande API
+- [ ] Créer app/(staff)/picking/[id].tsx — écran de picking avec liste articles
+- [ ] Intégrer le scanner BarcodeScanner pour cocher les articles un par un
+- [ ] Ajouter statut PRETE_A_L_ENVOI dans l'enum OrderStatus côté Vercel
+- [ ] Ajouter route PATCH /api/admin/commandes/[id]/status côté Vercel
+- [ ] Décrémentation automatique du stock à la validation de la préparation
+- [ ] Bouton "Commencer la préparation" dans orders.tsx → statut EN_PREPARATION
+- [ ] Bouton "Valider la préparation" → statut PRETE_A_L_ENVOI + décrémentation stock
+- [ ] Ajouter les fonctions API dans lib/api.ts (startPicking, validatePicking)
+- [ ] Ajouter la navigation vers l'écran picking depuis orders.tsx

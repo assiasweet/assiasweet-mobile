@@ -14,7 +14,9 @@ import { useLocalSearchParams, router } from "expo-router";
 import { getAdminOrder, updateOrderStatus } from "@/lib/api";
 import type { Order, OrderStatus } from "@/lib/types";
 
-const nav = router as unknown as { back: () => void };
+const navRouter = router as unknown as { back: () => void; push: (path: string) => void };
+
+
 
 const STATUS_OPTIONS: { value: OrderStatus; label: string; icon: string; color: string; bg: string }[] = [
   { value: "EN_ATTENTE", label: "En attente", icon: "⏳", color: "#92400E", bg: "#FEF3C7" },
@@ -88,6 +90,13 @@ export default function StaffOrderDetailScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: "white" }}>
+      {/* Header avec bouton retour */}
+      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: "#F3F4F6" }}>
+        <TouchableOpacity onPress={() => navRouter.back()} style={{ marginRight: 12, padding: 4 }}>
+          <Text style={{ fontSize: 22, color: "#E91E7B" }}>←</Text>
+        </TouchableOpacity>
+        <Text style={{ fontSize: 17, fontWeight: "800", color: "#1E1E1E", flex: 1 }}>{order.orderNumber}</Text>
+      </View>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         {/* Statut actuel */}
         <View
@@ -228,6 +237,28 @@ export default function StaffOrderDetailScreen() {
             <Text style={{ fontSize: 18, fontWeight: "800", color: "#E91E7B" }}>{Number(order.totalTTC).toFixed(2)} €</Text>
           </View>
         </View>
+
+        {/* Bouton Commencer la préparation */}
+        {(order.status === "EN_ATTENTE" || order.status === "EN_PREPARATION") && (
+          <TouchableOpacity
+            onPress={() => navRouter.push(`/staff-order/picking/${order.id}`)}
+            style={{
+              backgroundColor: "#E91E7B",
+              borderRadius: 16,
+              paddingVertical: 16,
+              alignItems: "center",
+              marginTop: 20,
+              flexDirection: "row",
+              justifyContent: "center",
+              gap: 8,
+            }}
+          >
+            <Text style={{ fontSize: 20 }}>📦</Text>
+            <Text style={{ color: "white", fontWeight: "800", fontSize: 16 }}>
+              {order.status === "EN_PREPARATION" ? "Continuer la préparation" : "Commencer la préparation"}
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {/* Notes */}
         {order.notes && (

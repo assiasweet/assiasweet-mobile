@@ -76,13 +76,32 @@ function OrderRow({ order }: { order: Order }) {
           </Text>
         </View>
       </View>
-      <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: "#F9FAFB" }}>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: "#F9FAFB", alignItems: "center" }}>
         <Text style={{ color: "#6B7280", fontSize: 12 }}>
           {order.shippingMethod === "RETRAIT" ? "🏪 Retrait" : "🚚 Livraison GLS"}
         </Text>
-        <Text style={{ color: "#9CA3AF", fontSize: 12 }}>
-          {order.paymentMethod === "VIREMENT" ? "💳 Virement" : order.paymentMethod}
-        </Text>
+        {(order.status === "EN_ATTENTE" || order.status === "EN_PREPARATION") ? (
+          <TouchableOpacity
+            onPress={(e) => { e.stopPropagation?.(); nav.push(`/staff-order/picking/${order.id}`); }}
+            style={{
+              backgroundColor: "#E91E7B",
+              borderRadius: 8,
+              paddingHorizontal: 10,
+              paddingVertical: 5,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 4,
+            }}
+          >
+            <Text style={{ color: "white", fontSize: 11, fontWeight: "700" }}>
+              {order.status === "EN_PREPARATION" ? "📦 Continuer" : "📦 Préparer"}
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <Text style={{ color: "#9CA3AF", fontSize: 12 }}>
+            {order.paymentMethod === "VIREMENT" ? "💳 Virement" : order.paymentMethod}
+          </Text>
+        )}
       </View>
     </TouchableOpacity>
   );

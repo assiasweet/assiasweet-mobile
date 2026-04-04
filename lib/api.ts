@@ -436,6 +436,20 @@ export async function updateProductStock(
   }, "staff");
 }
 
+export async function decrementProductStock(
+  id: string,
+  quantity: number
+): Promise<Product> {
+  // Récupérer le stock actuel puis décrémenter
+  const product = await request<Product>(`/admin/produits/${id}`, {}, "staff");
+  const currentStock = typeof product.stock === "number" ? product.stock : 0;
+  const newStock = Math.max(0, currentStock - quantity);
+  return request<Product>(`/admin/produits/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ stock: newStock }),
+  }, "staff");
+}
+
 export async function getProductByBarcode(barcode: string): Promise<Product | null> {
   try {
     const result = await request<ProductsResponse>(
