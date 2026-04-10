@@ -163,3 +163,9 @@
 - [x] checkout.tsx : choix de paiement PayPal ou virement bancaire
 - [x] Bouton PayPal bleu marine + flux : créer commande → créer ordre PayPal → WebView → capture → confirmation
 - [ ] Tester le flux PayPal complet sur appareil réel (compte sandbox PayPal)
+
+## Animation d'ouverture (10/04/2026)
+- [x] Logo AssiaSweet officiel copié dans assets/images/logo-splash.webp
+- [x] Composant SplashAnimation : fond rose pulsant, 12 particules bonbons explosant depuis le centre, logo tombant du haut avec rebond élastique, shimmer doré, 4 cercles d'onde irradiants, exit zoom-out + fade
+- [x] _layout.tsx : SplashAnimation par-dessus tout le contenu, disparaît après 3s
+- [x] Écran paypal-payment ajouté dans le Stack avec headerShown: false

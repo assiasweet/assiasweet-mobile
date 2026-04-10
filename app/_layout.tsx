@@ -1,13 +1,14 @@
 "use no memo";
 import "@/global.css";
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { View, ActivityIndicator, StyleSheet } from "react-native";
+import { View, StyleSheet } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
 import { StaffBanner } from "@/components/staff-banner";
+import { SplashAnimation } from "@/components/splash-animation";
 import { isStaffApp, PRIMARY_COLOR } from "@/lib/app-variant";
 import { useAuthStore } from "@/store/auth";
 
@@ -41,6 +42,10 @@ export default function RootLayout() {
   const initialize = useAuthStore((s) => s.initialize);
   const hasInitialized = useRef(false);
 
+  // showSplash : true tant que l'animation n'est pas terminée
+  // On ne la montre que sur mobile (pas sur web)
+  const [showSplash, setShowSplash] = useState(true);
+
   // Lancer l'initialisation une seule fois
   useEffect(() => {
     if (hasInitialized.current) return;
@@ -59,22 +64,23 @@ export default function RootLayout() {
     }
   }, [auth.status]);
 
-  // Pendant l'initialisation : fond blanc + spinner centré
-  // Le splash natif est encore visible par-dessus, donc l'utilisateur
-  // ne voit pas de blanc. Quand l'auth est résolue, on cache le splash.
   const isReady = auth.status !== "idle" && auth.status !== "loading";
+
+  // Callback quand l'animation splash est terminée
+  const handleSplashFinish = useCallback(() => {
+    setShowSplash(false);
+  }, []);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
       <SafeAreaProvider>
-        <StatusBar style="auto" />
+        <StatusBar style={showSplash ? "dark" : "auto"} />
         <StaffBanner />
+
+        {/* Contenu principal */}
         {!isReady ? (
-          // Écran de chargement pendant la vérification auth
-          // Le splash natif le recouvre, mais on a un fallback au cas où
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={PRIMARY_COLOR} />
-          </View>
+          // Fond blanc pendant la vérification auth (recouvert par le splash natif ou SplashAnimation)
+          <View style={styles.loadingContainer} />
         ) : (
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />
@@ -83,34 +89,43 @@ export default function RootLayout() {
             <Stack.Screen name="(staff)" />
             <Stack.Screen
               name="product/[id]"
-              options={{ headerShown: true, title: "Produit", headerTintColor: "#E91E7B" }}
+              options={{ headerShown: true, title: "Produit", headerTintColor: PRIMARY_COLOR }}
             />
             <Stack.Screen
               name="order/[id]"
-              options={{ headerShown: true, title: "Commande", headerTintColor: "#E91E7B" }}
+              options={{ headerShown: true, title: "Commande", headerTintColor: PRIMARY_COLOR }}
             />
             <Stack.Screen
               name="checkout"
-              options={{ headerShown: true, title: "Finaliser la commande", headerTintColor: "#E91E7B" }}
+              options={{ headerShown: true, title: "Finaliser la commande", headerTintColor: PRIMARY_COLOR }}
+            />
+            <Stack.Screen
+              name="paypal-payment"
+              options={{ headerShown: false, presentation: "modal" }}
             />
             <Stack.Screen
               name="staff-order/[id]"
-              options={{ headerShown: true, title: "Commande", headerTintColor: "#E91E7B" }}
+              options={{ headerShown: true, title: "Commande", headerTintColor: PRIMARY_COLOR }}
             />
             <Stack.Screen
               name="profile"
-              options={{ headerShown: true, title: "Mon profil", headerTintColor: "#E91E7B" }}
+              options={{ headerShown: true, title: "Mon profil", headerTintColor: PRIMARY_COLOR }}
             />
             <Stack.Screen
               name="addresses"
-              options={{ headerShown: true, title: "Mes adresses", headerTintColor: "#E91E7B" }}
+              options={{ headerShown: true, title: "Mes adresses", headerTintColor: PRIMARY_COLOR }}
             />
             <Stack.Screen
               name="invoices"
-              options={{ headerShown: true, title: "Mes factures", headerTintColor: "#E91E7B" }}
+              options={{ headerShown: true, title: "Mes factures", headerTintColor: PRIMARY_COLOR }}
             />
             <Stack.Screen name="oauth/callback" />
           </Stack>
+        )}
+
+        {/* Animation splash par-dessus tout — uniquement sur mobile et lors du premier lancement */}
+        {showSplash && (
+          <SplashAnimation onFinish={handleSplashFinish} />
         )}
       </SafeAreaProvider>
     </GestureHandlerRootView>
@@ -120,8 +135,6 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
-    backgroundColor: "#ffffff",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: "#FCE4F0",
   },
 });
