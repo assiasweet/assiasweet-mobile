@@ -42,6 +42,18 @@
         "buildConfiguration": "Release"
       }
     },
+    "production-client-apk": {
+      "distribution": "internal",
+      "env": {
+        "APP_VARIANT": "client"
+      },
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "buildConfiguration": "Release"
+      }
+    },
     "production-staff": {
       "distribution": "internal",
       "env": {
