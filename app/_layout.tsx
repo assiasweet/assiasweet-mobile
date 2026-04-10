@@ -43,8 +43,8 @@ export default function RootLayout() {
   const hasInitialized = useRef(false);
 
   // showSplash : true tant que l'animation n'est pas terminée
-  // On ne la montre que sur mobile (pas sur web)
-  const [showSplash, setShowSplash] = useState(true);
+  // Uniquement pour l'app client (pas staff, pas web)
+  const [showSplash, setShowSplash] = useState(!isStaffApp);
 
   // Lancer l'initialisation une seule fois
   useEffect(() => {
