@@ -132,3 +132,25 @@
 - [ ] Bouton "Valider la préparation" → statut PRETE_A_L_ENVOI + décrémentation stock
 - [ ] Ajouter les fonctions API dans lib/api.ts (startPicking, validatePicking)
 - [ ] Ajouter la navigation vers l'écran picking depuis orders.tsx
+
+## Préparation production (07/04/2026)
+- [ ] P0 — Supprimer DEMO_PRODUCTS et DEMO_CATEGORIES de tous les écrans
+- [ ] P0 — Remplacer les fallbacks mock par des états de chargement / erreur propres
+- [ ] P0 — Vérifier affichage images produits (Shopify CDN) sur vrai appareil
+- [ ] P0 — Corriger les images manquantes ou cassées (fallback image)
+- [ ] P1 — Tester checkout complet de bout en bout (adresse → livraison → commande → email)
+- [ ] P1 — Intégrer Revolut Merchant API (paiement en ligne réel)
+- [ ] P1 — Tester notifications push sur vrai appareil
+- [ ] P2 — Remplacer emojis marques par vrais logos
+- [ ] P2 — Son ka-ching staff (expo-audio, polling nouvelles commandes)
+- [ ] Build — Lancer production-client et production-staff finaux
+
+## Fix écran blanc au redémarrage — Flux d'initialisation (10/04/2026)
+- [x] Lire et analyser _layout.tsx, store/auth.ts, AnimatedSplash.tsx, app/index.tsx
+- [x] Corriger le flux : token lu depuis SecureStore AVANT toute navigation
+- [x] Ajouter ActivityIndicator fiable pendant la vérification auth
+- [x] Fiabiliser SplashScreen.hideAsync (SplashScreen.preventAutoHideAsync + hideAsync dans onLayout)
+- [x] Remplacer AnimatedSplash custom par splash natif Expo (plus fiable)
+- [x] Backend Vercel : accepter Bearer token sur customer-profile, adresses, factures, orders, checkout/order
+- [x] App mobile : getCustomerProfile() dépaquette {customer:...} et normalise isApproved→status
+- [ ] Tester le flux : cold start, restart, retour foreground (sur appareil réel)

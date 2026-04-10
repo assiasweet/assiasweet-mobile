@@ -179,7 +179,16 @@ export async function logoutCustomer(): Promise<void> {
 }
 
 export async function getCustomerProfile(): Promise<Customer> {
-  return request<Customer>("/auth/customer-profile", {}, "customer");
+  // L'API retourne { customer: { ..., isApproved: bool } }
+  const data = await request<{ customer: Record<string, unknown> } | Record<string, unknown>>("/auth/customer-profile", {}, "customer");
+  // Dépaqueter le wrapper {customer: ...} si présent
+  const raw: Record<string, unknown> =
+    (data as { customer?: Record<string, unknown> }).customer ?? (data as Record<string, unknown>);
+  // Normaliser isApproved → status pour le store auth
+  if (!raw.status) {
+    raw.status = raw.isApproved ? "APPROVED" : "PENDING";
+  }
+  return raw as unknown as Customer;
 }
 
 export async function updateCustomerProfile(data: Partial<Customer>): Promise<Customer> {
