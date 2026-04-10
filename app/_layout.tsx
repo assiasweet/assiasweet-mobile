@@ -13,9 +13,7 @@ import { isStaffApp, PRIMARY_COLOR } from "@/lib/app-variant";
 import { useAuthStore } from "@/store/auth";
 
 // Garder le splash natif visible jusqu'à ce qu'on soit prêt
-SplashScreen.preventAutoHideAsync().catch(() => {
-  // ignore si déjà caché
-});
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 // Apply theme CSS variables directly on web
 if (typeof document !== "undefined") {
@@ -41,47 +39,55 @@ export default function RootLayout() {
   const auth = useAuthStore((s) => s.auth);
   const initialize = useAuthStore((s) => s.initialize);
   const hasInitialized = useRef(false);
+  const splashHidden = useRef(false);
 
-  // showSplash : true tant que l'animation n'est pas terminée
-  // Uniquement pour l'app client (pas staff, pas web)
+  // Pour l'app client uniquement : afficher l'animation custom
   const [showSplash, setShowSplash] = useState(!isStaffApp);
+  // Indique si l'auth est résolue (peu importe le résultat)
+  const [authReady, setAuthReady] = useState(false);
 
-  // Lancer l'initialisation une seule fois
+  // Fonction utilitaire pour cacher le splash natif (une seule fois)
+  const hideSplashNative = useCallback(async () => {
+    if (splashHidden.current) return;
+    splashHidden.current = true;
+    try {
+      await SplashScreen.hideAsync();
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // Lancer l'initialisation une seule fois + timeout de sécurité 5s
   useEffect(() => {
     if (hasInitialized.current) return;
     hasInitialized.current = true;
-    initialize();
-  }, [initialize]);
 
-  // Cacher le splash natif dès que l'auth est résolue
-  const onLayoutRootView = useCallback(async () => {
-    if (auth.status !== "idle" && auth.status !== "loading") {
-      try {
-        await SplashScreen.hideAsync();
-      } catch {
-        // ignore — peut arriver si déjà caché
-      }
-    }
-  }, [auth.status]);
+    // Timeout de sécurité : si initialize() ne répond pas en 5s, on continue quand même
+    const timeout = setTimeout(() => {
+      setAuthReady(true);
+      hideSplashNative();
+    }, 5000);
 
-  const isReady = auth.status !== "idle" && auth.status !== "loading";
+    initialize().finally(() => {
+      clearTimeout(timeout);
+      setAuthReady(true);
+      hideSplashNative();
+    });
+  }, [initialize, hideSplashNative]);
 
-  // Callback quand l'animation splash est terminée
+  // Callback quand l'animation splash custom est terminée
   const handleSplashFinish = useCallback(() => {
     setShowSplash(false);
   }, []);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <StatusBar style={showSplash ? "dark" : "auto"} />
         <StaffBanner />
 
-        {/* Contenu principal */}
-        {!isReady ? (
-          // Fond blanc pendant la vérification auth (recouvert par le splash natif ou SplashAnimation)
-          <View style={styles.loadingContainer} />
-        ) : (
+        {/* Contenu principal — toujours rendu, même si auth pas encore prête */}
+        {authReady ? (
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />
             <Stack.Screen name="(auth)" />
@@ -121,9 +127,12 @@ export default function RootLayout() {
             />
             <Stack.Screen name="oauth/callback" />
           </Stack>
+        ) : (
+          // Fond pendant la vérification auth (recouvert par le splash natif)
+          <View style={[styles.loadingContainer, isStaffApp && styles.loadingStaff]} />
         )}
 
-        {/* Animation splash par-dessus tout — uniquement sur mobile et lors du premier lancement */}
+        {/* Animation splash custom par-dessus — uniquement app client */}
         {showSplash && (
           <SplashAnimation onFinish={handleSplashFinish} />
         )}
@@ -136,5 +145,8 @@ const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
     backgroundColor: "#FCE4F0",
+  },
+  loadingStaff: {
+    backgroundColor: "#E8F5E9",
   },
 });
