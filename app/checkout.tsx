@@ -7,21 +7,20 @@ import {
   ActivityIndicator,
   Alert,
   TextInput,
+  StyleSheet,
 } from "react-native";
 import { router } from "expo-router";
-import { getAddresses, calculateShipping, createOrder } from "@/lib/api";
+import { getAddresses, calculateShipping, createOrder, createPayPalOrder } from "@/lib/api";
 import { useCartStore } from "@/store/cart";
 import type { Address, ShippingOption } from "@/lib/types";
 
-const nav = router as unknown as { back: () => void; replace: (p: string) => void };
-
-const RIB_INFO = `
-Bénéficiaire : AssiaSweet
+const RIB_INFO = `Bénéficiaire : AssiaSweet
 IBAN : FR76 XXXX XXXX XXXX XXXX XXXX XXX
 BIC : XXXXXXXX
 Banque : Revolut Business
-Référence : [Votre numéro de commande]
-`.trim();
+Référence : [Votre numéro de commande]`;
+
+type PaymentMethod = "PAYPAL" | "VIREMENT";
 
 export default function CheckoutScreen() {
   const items = useCartStore((s) => s.items);
@@ -34,10 +33,11 @@ export default function CheckoutScreen() {
   const [selectedShipping, setSelectedShipping] = useState<string>("");
   const [shippingPrice, setShippingPrice] = useState(0);
   const [notes, setNotes] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("PAYPAL");
   const [isLoading, setIsLoading] = useState(true);
   const [isCalculatingShipping, setIsCalculatingShipping] = useState(false);
   const [isOrdering, setIsOrdering] = useState(false);
-  const [step, setStep] = useState<"address" | "shipping" | "payment" | "confirm">("address");
+  const [step, setStep] = useState<"address" | "shipping" | "payment">("address");
 
   const subtotalHT = getSubtotalHT();
 
@@ -84,7 +84,8 @@ export default function CheckoutScreen() {
     }
   };
 
-  const handleConfirmOrder = async () => {
+  // Paiement par virement : crée la commande directement
+  const handleVirementOrder = async () => {
     setIsOrdering(true);
     try {
       const order = await createOrder({
@@ -94,17 +95,11 @@ export default function CheckoutScreen() {
         paymentMethod: "VIREMENT",
         notes: notes.trim() || undefined,
       });
-
       clearCart();
       Alert.alert(
-        "Commande confirmée ! 🎉",
+        "Commande enregistrée ! 🎉",
         `Votre commande ${order.orderNumber} a été enregistrée.\n\nMerci d'effectuer le virement bancaire avec la référence ${order.orderNumber}.`,
-        [
-          {
-            text: "Voir mes commandes",
-            onPress: () => nav.replace("/(tabs)/orders"),
-          },
-        ]
+        [{ text: "Voir mes commandes", onPress: () => router.replace("/(tabs)/orders" as Parameters<typeof router.replace>[0]) }]
       );
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Erreur lors de la commande";
@@ -114,81 +109,110 @@ export default function CheckoutScreen() {
     }
   };
 
+  // Paiement PayPal : crée la commande + crée l'ordre PayPal + navigue vers WebView
+  const handlePayPalOrder = async () => {
+    setIsOrdering(true);
+    try {
+      // 1. Créer la commande en BDD (statut EN_ATTENTE, paiement PAYPAL)
+      const order = await createOrder({
+        items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+        addressId: selectedAddressId,
+        shippingMethod: selectedShipping,
+        paymentMethod: "PAYPAL",
+        notes: notes.trim() || undefined,
+      });
+
+      // 2. Créer l'ordre PayPal avec le montant TTC
+      const paypalOrder = await createPayPalOrder({
+        amount: totalTTC,
+        currency: "EUR",
+        orderId: order.orderNumber,
+        internalOrderId: order.id,
+      });
+
+      if (!paypalOrder.id) {
+        throw new Error("Impossible de créer l'ordre PayPal");
+      }
+
+      // 3. Vider le panier et naviguer vers la WebView PayPal
+      clearCart();
+      router.push({
+        pathname: "/paypal-payment",
+        params: {
+          paypalOrderId: paypalOrder.id,
+          internalOrderId: order.id,
+          amount: totalTTC.toFixed(2),
+          orderNumber: order.orderNumber,
+        },
+      } as Parameters<typeof router.push>[0]);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Erreur lors de la commande";
+      Alert.alert("Erreur", message);
+    } finally {
+      setIsOrdering(false);
+    }
+  };
+
+  const handleConfirmOrder = () => {
+    if (paymentMethod === "PAYPAL") {
+      handlePayPalOrder();
+    } else {
+      handleVirementOrder();
+    }
+  };
+
   if (isLoading) {
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "white" }}>
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#E91E7B" />
       </View>
     );
   }
 
-  const selectedOption = shippingOptions.find((o) => o.method === selectedShipping);
+  const selectedOption = shippingOptions.find((o) => o.id === selectedShipping || o.method === selectedShipping);
   const totalHT = subtotalHT + shippingPrice;
   const totalTVA = items.reduce((s, i) => s + i.unitPriceHT * i.quantity * (i.tvaRate / 100), 0) + shippingPrice * 0.2;
   const totalTTC = totalHT + totalTVA;
 
   return (
-    <View style={{ flex: 1, backgroundColor: "white" }}>
+    <View style={styles.container}>
       {/* Indicateur d'étapes */}
-      <View style={{ flexDirection: "row", paddingHorizontal: 16, paddingVertical: 12, gap: 4 }}>
+      <View style={styles.stepsRow}>
         {(["address", "shipping", "payment"] as const).map((s, i) => (
-          <View key={s} style={{ flex: 1, flexDirection: "row", alignItems: "center" }}>
+          <View key={s} style={styles.stepItem}>
             <View
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: 14,
-                backgroundColor:
-                  step === s ? "#E91E7B" :
-                  (step === "shipping" && s === "address") || (step === "payment" && s !== "payment") ? "#22C55E" :
-                  "#E5E7EB",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
+              style={[
+                styles.stepCircle,
+                step === s && styles.stepCircleActive,
+                ((step === "shipping" && s === "address") || (step === "payment" && s !== "payment")) && styles.stepCircleDone,
+              ]}
             >
-              <Text style={{ color: "white", fontSize: 12, fontWeight: "700" }}>
+              <Text style={styles.stepCircleText}>
                 {(step === "shipping" && s === "address") || (step === "payment" && s !== "payment") ? "✓" : String(i + 1)}
               </Text>
             </View>
-            {i < 2 && (
-              <View style={{ flex: 1, height: 2, backgroundColor: "#E5E7EB", marginHorizontal: 4 }} />
-            )}
+            {i < 2 && <View style={styles.stepLine} />}
           </View>
         ))}
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Étape 1 — Adresse */}
         {step === "address" && (
-          <View style={{ gap: 16 }}>
-            <Text style={{ fontSize: 20, fontWeight: "800", color: "#1E1E1E" }}>
-              Adresse de livraison
-            </Text>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Adresse de livraison</Text>
 
             {addresses.length === 0 ? (
-              <View
-                style={{
-                  padding: 20,
-                  backgroundColor: "#FEF3C7",
-                  borderRadius: 14,
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <Text style={{ fontSize: 24 }}>📍</Text>
-                <Text style={{ color: "#92400E", fontSize: 14, textAlign: "center" }}>
+              <View style={styles.emptyBox}>
+                <Text style={styles.emptyIcon}>📍</Text>
+                <Text style={styles.emptyText}>
                   Aucune adresse de livraison enregistrée.{"\n"}Ajoutez une adresse dans votre compte.
                 </Text>
                 <TouchableOpacity
-                  onPress={() => nav.replace("/addresses")}
-                  style={{
-                    backgroundColor: "#E91E7B",
-                    borderRadius: 10,
-                    paddingVertical: 10,
-                    paddingHorizontal: 20,
-                  }}
+                  onPress={() => router.replace("/addresses" as Parameters<typeof router.replace>[0])}
+                  style={styles.addButton}
                 >
-                  <Text style={{ color: "white", fontWeight: "700" }}>Ajouter une adresse</Text>
+                  <Text style={styles.addButtonText}>Ajouter une adresse</Text>
                 </TouchableOpacity>
               </View>
             ) : (
@@ -196,27 +220,18 @@ export default function CheckoutScreen() {
                 <TouchableOpacity
                   key={addr.id}
                   onPress={() => setSelectedAddressId(addr.id)}
-                  style={{
-                    borderWidth: 2,
-                    borderColor: selectedAddressId === addr.id ? "#E91E7B" : "#E5E7EB",
-                    borderRadius: 14,
-                    padding: 14,
-                    backgroundColor: selectedAddressId === addr.id ? "#FCE4F0" : "white",
-                  }}
+                  style={[styles.card, selectedAddressId === addr.id && styles.cardSelected]}
                 >
-                  <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                    <Text style={{ fontWeight: "700", color: "#1E1E1E", fontSize: 14 }}>
+                  <View style={styles.cardRow}>
+                    <Text style={styles.cardTitle}>
                       {addr.company || `${addr.firstName} ${addr.lastName}`}
                     </Text>
-                    {selectedAddressId === addr.id && (
-                      <Text style={{ color: "#E91E7B", fontWeight: "700" }}>✓</Text>
-                    )}
+                    {selectedAddressId === addr.id && <Text style={styles.checkmark}>✓</Text>}
                   </View>
-                  <Text style={{ color: "#6B7280", fontSize: 13, marginTop: 4 }}>
-                    {addr.street}
-                    {addr.complement ? `, ${addr.complement}` : ""}
+                  <Text style={styles.cardSubtext}>
+                    {addr.street}{addr.complement ? `, ${addr.complement}` : ""}
                   </Text>
-                  <Text style={{ color: "#6B7280", fontSize: 13 }}>
+                  <Text style={styles.cardSubtext}>
                     {addr.postalCode} {addr.city}, {addr.country}
                   </Text>
                 </TouchableOpacity>
@@ -227,10 +242,8 @@ export default function CheckoutScreen() {
 
         {/* Étape 2 — Livraison */}
         {step === "shipping" && (
-          <View style={{ gap: 16 }}>
-            <Text style={{ fontSize: 20, fontWeight: "800", color: "#1E1E1E" }}>
-              Mode de livraison
-            </Text>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Mode de livraison</Text>
 
             {shippingOptions.map((option) => {
               const optId = option.id || option.method || "";
@@ -239,50 +252,30 @@ export default function CheckoutScreen() {
               return (
                 <TouchableOpacity
                   key={optId}
-                  onPress={() => {
-                    setSelectedShipping(optId);
-                    setShippingPrice(optPrice);
-                  }}
-                  style={{
-                    borderWidth: 2,
-                    borderColor: selectedShipping === optId ? "#E91E7B" : "#E5E7EB",
-                    borderRadius: 14,
-                    padding: 16,
-                    backgroundColor: selectedShipping === optId ? "#FCE4F0" : "white",
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 12,
-                  }}
+                  onPress={() => { setSelectedShipping(optId); setShippingPrice(optPrice); }}
+                  style={[styles.card, styles.cardRow, selectedShipping === optId && styles.cardSelected]}
                 >
-                  <Text style={{ fontSize: 28 }}>
+                  <Text style={styles.shippingIcon}>
                     {isRetrait ? "🏦" : optId === "relais" ? "📦" : "🚚"}
                   </Text>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontWeight: "700", color: "#1E1E1E", fontSize: 15 }}>
-                      {option.label}
-                    </Text>
+                    <Text style={styles.cardTitle}>{option.label}</Text>
                     {option.description && (
-                      <Text style={{ color: "#6B7280", fontSize: 12, marginTop: 2 }}>
-                        {option.description}
-                      </Text>
+                      <Text style={styles.cardSubtext}>{option.description}</Text>
                     )}
                     {isRetrait && (
-                      <Text style={{ color: "#6B7280", fontSize: 12, marginTop: 1 }}>
-                        161 rue Belle Étoile, Roissy-en-France
-                      </Text>
+                      <Text style={styles.cardSubtext}>161 rue Belle Étoile, Roissy-en-France</Text>
                     )}
                   </View>
-                  <Text style={{ color: "#E91E7B", fontWeight: "800", fontSize: 15 }}>
+                  <Text style={styles.shippingPrice}>
                     {option.isFree || optPrice === 0 ? "Gratuit" : `${optPrice.toFixed(2)} € HT`}
                   </Text>
                 </TouchableOpacity>
               );
             })}
 
-            <View>
-              <Text style={{ fontSize: 14, fontWeight: "600", color: "#1E1E1E", marginBottom: 8 }}>
-                Notes (optionnel)
-              </Text>
+            <View style={styles.notesContainer}>
+              <Text style={styles.notesLabel}>Notes (optionnel)</Text>
               <TextInput
                 value={notes}
                 onChangeText={setNotes}
@@ -290,47 +283,29 @@ export default function CheckoutScreen() {
                 placeholderTextColor="#9CA3AF"
                 multiline
                 numberOfLines={3}
-                style={{
-                  borderWidth: 1,
-                  borderColor: "#E5E7EB",
-                  borderRadius: 12,
-                  padding: 12,
-                  fontSize: 14,
-                  color: "#1E1E1E",
-                  backgroundColor: "#F9FAFB",
-                  minHeight: 80,
-                  textAlignVertical: "top",
-                }}
+                returnKeyType="done"
+                style={styles.notesInput}
               />
             </View>
           </View>
         )}
 
-        {/* Étape 3 — Paiement et récapitulatif */}
+        {/* Étape 3 — Récapitulatif et paiement */}
         {step === "payment" && (
-          <View style={{ gap: 16 }}>
-            <Text style={{ fontSize: 20, fontWeight: "800", color: "#1E1E1E" }}>
-              Récapitulatif et paiement
-            </Text>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Récapitulatif et paiement</Text>
 
-            {/* Récapitulatif commande */}
-            <View
-              style={{
-                backgroundColor: "#F9FAFB",
-                borderRadius: 14,
-                padding: 16,
-                gap: 8,
-              }}
-            >
-              <Text style={{ fontWeight: "700", color: "#1E1E1E", marginBottom: 4 }}>
+            {/* Articles */}
+            <View style={styles.summaryBox}>
+              <Text style={styles.summaryTitle}>
                 Votre commande ({items.length} article{items.length > 1 ? "s" : ""})
               </Text>
               {items.map((item) => (
-                <View key={item.productId} style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                  <Text style={{ color: "#6B7280", fontSize: 13, flex: 1 }} numberOfLines={1}>
+                <View key={item.productId} style={styles.summaryRow}>
+                  <Text style={styles.summaryItemName} numberOfLines={1}>
                     {item.quantity}x {item.productName}
                   </Text>
-                  <Text style={{ color: "#1E1E1E", fontSize: 13, fontWeight: "600" }}>
+                  <Text style={styles.summaryItemPrice}>
                     {(item.unitPriceHT * item.quantity).toFixed(2)} €
                   </Text>
                 </View>
@@ -338,76 +313,109 @@ export default function CheckoutScreen() {
             </View>
 
             {/* Totaux */}
-            <View
-              style={{
-                backgroundColor: "white",
-                borderRadius: 14,
-                borderWidth: 1,
-                borderColor: "#F3F4F6",
-                padding: 16,
-                gap: 10,
-              }}
-            >
-              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                <Text style={{ color: "#6B7280" }}>Sous-total HT</Text>
-                <Text style={{ color: "#1E1E1E", fontWeight: "600" }}>{subtotalHT.toFixed(2)} €</Text>
+            <View style={styles.totalsBox}>
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Sous-total HT</Text>
+                <Text style={styles.totalValue}>{subtotalHT.toFixed(2)} €</Text>
               </View>
-              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                <Text style={{ color: "#6B7280" }}>Frais de port HT</Text>
-                <Text style={{ color: "#1E1E1E", fontWeight: "600" }}>
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Frais de port HT</Text>
+                <Text style={styles.totalValue}>
                   {shippingPrice === 0 ? "Gratuit" : `${shippingPrice.toFixed(2)} €`}
                 </Text>
               </View>
-              <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                <Text style={{ color: "#6B7280" }}>TVA</Text>
-                <Text style={{ color: "#1E1E1E", fontWeight: "600" }}>{totalTVA.toFixed(2)} €</Text>
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>TVA</Text>
+                <Text style={styles.totalValue}>{totalTVA.toFixed(2)} €</Text>
               </View>
-              <View
-                style={{
-                  borderTopWidth: 1,
-                  borderTopColor: "#F3F4F6",
-                  paddingTop: 10,
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                }}
-              >
-                <Text style={{ color: "#1E1E1E", fontSize: 16, fontWeight: "800" }}>Total TTC</Text>
-                <Text style={{ color: "#E91E7B", fontSize: 18, fontWeight: "800" }}>
-                  {totalTTC.toFixed(2)} €
-                </Text>
+              <View style={styles.totalRowFinal}>
+                <Text style={styles.totalFinalLabel}>Total TTC</Text>
+                <Text style={styles.totalFinalValue}>{totalTTC.toFixed(2)} €</Text>
               </View>
-            </View>
-
-            {/* Paiement par virement */}
-            <View
-              style={{
-                backgroundColor: "#F0FDF4",
-                borderRadius: 14,
-                borderWidth: 1,
-                borderColor: "#BBF7D0",
-                padding: 16,
-                gap: 10,
-              }}
-            >
-              <Text style={{ fontSize: 15, fontWeight: "700", color: "#065F46" }}>
-                💳 Paiement par virement bancaire
-              </Text>
-              <Text style={{ color: "#047857", fontSize: 13, lineHeight: 20 }}>
-                {RIB_INFO}
-              </Text>
-              <Text style={{ color: "#6B7280", fontSize: 12, lineHeight: 18 }}>
-                Votre commande sera traitée dès réception du virement. Indiquez votre numéro de commande en référence.
-              </Text>
             </View>
 
             {/* Livraison sélectionnée */}
             {selectedOption && (
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#F9FAFB", borderRadius: 12, padding: 12 }}>
-                <Text style={{ fontSize: 20 }}>{selectedOption.method === "RETRAIT" ? "🏪" : "🚚"}</Text>
+              <View style={styles.selectedShippingBox}>
+                <Text style={styles.shippingIcon}>
+                  {selectedOption.id === "retrait" || selectedOption.method === "RETRAIT" ? "🏪" : "🚚"}
+                </Text>
                 <View>
-                  <Text style={{ fontWeight: "600", color: "#1E1E1E", fontSize: 14 }}>{selectedOption.label}</Text>
-                  <Text style={{ color: "#6B7280", fontSize: 12 }}>Délai : {selectedOption.delay}</Text>
+                  <Text style={styles.cardTitle}>{selectedOption.label}</Text>
+                  {selectedOption.delay && (
+                    <Text style={styles.cardSubtext}>Délai : {selectedOption.delay}</Text>
+                  )}
                 </View>
+              </View>
+            )}
+
+            {/* Choix du mode de paiement */}
+            <Text style={styles.paymentSectionTitle}>Mode de paiement</Text>
+
+            {/* PayPal */}
+            <TouchableOpacity
+              onPress={() => setPaymentMethod("PAYPAL")}
+              style={[styles.paymentOption, paymentMethod === "PAYPAL" && styles.paymentOptionSelected]}
+            >
+              <View style={styles.paymentOptionLeft}>
+                <View style={[styles.paymentRadio, paymentMethod === "PAYPAL" && styles.paymentRadioSelected]}>
+                  {paymentMethod === "PAYPAL" && <View style={styles.paymentRadioDot} />}
+                </View>
+                <View>
+                  <View style={styles.paypalBadge}>
+                    <Text style={styles.paypalBadgeText}>Pay</Text>
+                    <Text style={[styles.paypalBadgeText, { color: "#009cde" }]}>Pal</Text>
+                  </View>
+                  <Text style={styles.paymentOptionDesc}>
+                    Paiement sécurisé immédiat
+                  </Text>
+                </View>
+              </View>
+              {paymentMethod === "PAYPAL" && (
+                <Text style={styles.paymentCheckmark}>✓</Text>
+              )}
+            </TouchableOpacity>
+
+            {/* Virement bancaire */}
+            <TouchableOpacity
+              onPress={() => setPaymentMethod("VIREMENT")}
+              style={[styles.paymentOption, paymentMethod === "VIREMENT" && styles.paymentOptionSelected]}
+            >
+              <View style={styles.paymentOptionLeft}>
+                <View style={[styles.paymentRadio, paymentMethod === "VIREMENT" && styles.paymentRadioSelected]}>
+                  {paymentMethod === "VIREMENT" && <View style={styles.paymentRadioDot} />}
+                </View>
+                <View>
+                  <Text style={styles.paymentOptionTitle}>🏦 Virement bancaire</Text>
+                  <Text style={styles.paymentOptionDesc}>
+                    Commande traitée à réception
+                  </Text>
+                </View>
+              </View>
+              {paymentMethod === "VIREMENT" && (
+                <Text style={styles.paymentCheckmark}>✓</Text>
+              )}
+            </TouchableOpacity>
+
+            {/* Détails virement si sélectionné */}
+            {paymentMethod === "VIREMENT" && (
+              <View style={styles.ribBox}>
+                <Text style={styles.ribTitle}>Coordonnées bancaires</Text>
+                <Text style={styles.ribText}>{RIB_INFO}</Text>
+                <Text style={styles.ribNote}>
+                  Indiquez votre numéro de commande en référence du virement.
+                </Text>
+              </View>
+            )}
+
+            {/* Info PayPal si sélectionné */}
+            {paymentMethod === "PAYPAL" && (
+              <View style={styles.paypalInfoBox}>
+                <Text style={styles.paypalInfoText}>
+                  Vous serez redirigé vers PayPal pour finaliser le paiement de{" "}
+                  <Text style={{ fontWeight: "800" }}>{totalTTC.toFixed(2)} €</Text>.
+                  Votre commande sera confirmée immédiatement après le paiement.
+                </Text>
               </View>
             )}
           </View>
@@ -415,35 +423,17 @@ export default function CheckoutScreen() {
       </ScrollView>
 
       {/* Bouton d'action fixe */}
-      <View
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: 0,
-          right: 0,
-          padding: 16,
-          backgroundColor: "white",
-          borderTopWidth: 1,
-          borderTopColor: "#F3F4F6",
-        }}
-      >
+      <View style={styles.actionBar}>
         {step === "address" && (
           <TouchableOpacity
             onPress={handleCalculateShipping}
             disabled={!selectedAddressId || isCalculatingShipping}
-            style={{
-              backgroundColor: selectedAddressId ? "#E91E7B" : "#9CA3AF",
-              borderRadius: 16,
-              paddingVertical: 16,
-              alignItems: "center",
-            }}
+            style={[styles.actionButton, (!selectedAddressId || isCalculatingShipping) && styles.actionButtonDisabled]}
           >
             {isCalculatingShipping ? (
               <ActivityIndicator color="white" />
             ) : (
-              <Text style={{ color: "white", fontSize: 16, fontWeight: "700" }}>
-                Choisir la livraison →
-              </Text>
+              <Text style={styles.actionButtonText}>Choisir la livraison →</Text>
             )}
           </TouchableOpacity>
         )}
@@ -452,16 +442,9 @@ export default function CheckoutScreen() {
           <TouchableOpacity
             onPress={() => setStep("payment")}
             disabled={!selectedShipping}
-            style={{
-              backgroundColor: selectedShipping ? "#E91E7B" : "#9CA3AF",
-              borderRadius: 16,
-              paddingVertical: 16,
-              alignItems: "center",
-            }}
+            style={[styles.actionButton, !selectedShipping && styles.actionButtonDisabled]}
           >
-            <Text style={{ color: "white", fontSize: 16, fontWeight: "700" }}>
-              Voir le récapitulatif →
-            </Text>
+            <Text style={styles.actionButtonText}>Voir le récapitulatif →</Text>
           </TouchableOpacity>
         )}
 
@@ -469,20 +452,22 @@ export default function CheckoutScreen() {
           <TouchableOpacity
             onPress={handleConfirmOrder}
             disabled={isOrdering}
-            style={{
-              backgroundColor: "#E91E7B",
-              borderRadius: 16,
-              paddingVertical: 16,
-              alignItems: "center",
-              opacity: isOrdering ? 0.7 : 1,
-            }}
+            style={[
+              styles.actionButton,
+              paymentMethod === "PAYPAL" && styles.actionButtonPayPal,
+              isOrdering && styles.actionButtonDisabled,
+            ]}
           >
             {isOrdering ? (
               <ActivityIndicator color="white" />
+            ) : paymentMethod === "PAYPAL" ? (
+              <View style={styles.paypalButtonContent}>
+                <Text style={styles.paypalButtonText}>Payer avec </Text>
+                <Text style={[styles.paypalButtonText, { fontStyle: "italic" }]}>Pay</Text>
+                <Text style={[styles.paypalButtonText, { fontStyle: "italic", color: "#009cde" }]}>Pal</Text>
+              </View>
             ) : (
-              <Text style={{ color: "white", fontSize: 16, fontWeight: "700" }}>
-                Confirmer la commande ✓
-              </Text>
+              <Text style={styles.actionButtonText}>Confirmer la commande ✓</Text>
             )}
           </TouchableOpacity>
         )}
@@ -490,3 +475,84 @@ export default function CheckoutScreen() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "white" },
+  loadingContainer: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "white" },
+  stepsRow: { flexDirection: "row", paddingHorizontal: 16, paddingVertical: 12, gap: 4 },
+  stepItem: { flex: 1, flexDirection: "row", alignItems: "center" },
+  stepCircle: { width: 28, height: 28, borderRadius: 14, backgroundColor: "#E5E7EB", alignItems: "center", justifyContent: "center" },
+  stepCircleActive: { backgroundColor: "#E91E7B" },
+  stepCircleDone: { backgroundColor: "#22C55E" },
+  stepCircleText: { color: "white", fontSize: 12, fontWeight: "700" },
+  stepLine: { flex: 1, height: 2, backgroundColor: "#E5E7EB", marginHorizontal: 4 },
+  scrollContent: { padding: 16, paddingBottom: 120 },
+  section: { gap: 14 },
+  sectionTitle: { fontSize: 20, fontWeight: "800", color: "#1E1E1E" },
+  emptyBox: { padding: 20, backgroundColor: "#FEF3C7", borderRadius: 14, alignItems: "center", gap: 8 },
+  emptyIcon: { fontSize: 24 },
+  emptyText: { color: "#92400E", fontSize: 14, textAlign: "center" },
+  addButton: { backgroundColor: "#E91E7B", borderRadius: 10, paddingVertical: 10, paddingHorizontal: 20 },
+  addButtonText: { color: "white", fontWeight: "700" },
+  card: { borderWidth: 2, borderColor: "#E5E7EB", borderRadius: 14, padding: 14, backgroundColor: "white" },
+  cardSelected: { borderColor: "#E91E7B", backgroundColor: "#FCE4F0" },
+  cardRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  cardTitle: { fontWeight: "700", color: "#1E1E1E", fontSize: 14 },
+  cardSubtext: { color: "#6B7280", fontSize: 13, marginTop: 2 },
+  checkmark: { color: "#E91E7B", fontWeight: "700" },
+  shippingIcon: { fontSize: 28 },
+  shippingPrice: { color: "#E91E7B", fontWeight: "800", fontSize: 15 },
+  notesContainer: { gap: 6 },
+  notesLabel: { fontSize: 14, fontWeight: "600", color: "#1E1E1E" },
+  notesInput: {
+    borderWidth: 1, borderColor: "#E5E7EB", borderRadius: 12,
+    padding: 12, fontSize: 14, color: "#1E1E1E",
+    backgroundColor: "#F9FAFB", minHeight: 80, textAlignVertical: "top",
+  },
+  summaryBox: { backgroundColor: "#F9FAFB", borderRadius: 14, padding: 16, gap: 8 },
+  summaryTitle: { fontWeight: "700", color: "#1E1E1E", marginBottom: 4 },
+  summaryRow: { flexDirection: "row", justifyContent: "space-between" },
+  summaryItemName: { color: "#6B7280", fontSize: 13, flex: 1 },
+  summaryItemPrice: { color: "#1E1E1E", fontSize: 13, fontWeight: "600" },
+  totalsBox: { backgroundColor: "white", borderRadius: 14, borderWidth: 1, borderColor: "#F3F4F6", padding: 16, gap: 10 },
+  totalRow: { flexDirection: "row", justifyContent: "space-between" },
+  totalLabel: { color: "#6B7280" },
+  totalValue: { color: "#1E1E1E", fontWeight: "600" },
+  totalRowFinal: { flexDirection: "row", justifyContent: "space-between", borderTopWidth: 1, borderTopColor: "#F3F4F6", paddingTop: 10 },
+  totalFinalLabel: { color: "#1E1E1E", fontSize: 16, fontWeight: "800" },
+  totalFinalValue: { color: "#E91E7B", fontSize: 18, fontWeight: "800" },
+  selectedShippingBox: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#F9FAFB", borderRadius: 12, padding: 12 },
+  paymentSectionTitle: { fontSize: 16, fontWeight: "700", color: "#1E1E1E", marginTop: 4 },
+  paymentOption: {
+    borderWidth: 2, borderColor: "#E5E7EB", borderRadius: 14, padding: 14,
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    backgroundColor: "white",
+  },
+  paymentOptionSelected: { borderColor: "#E91E7B", backgroundColor: "#FCE4F0" },
+  paymentOptionLeft: { flexDirection: "row", alignItems: "center", gap: 12 },
+  paymentRadio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: "#D1D5DB", alignItems: "center", justifyContent: "center" },
+  paymentRadioSelected: { borderColor: "#E91E7B" },
+  paymentRadioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: "#E91E7B" },
+  paymentOptionTitle: { fontSize: 15, fontWeight: "700", color: "#1E1E1E" },
+  paymentOptionDesc: { fontSize: 12, color: "#6B7280", marginTop: 2 },
+  paymentCheckmark: { color: "#E91E7B", fontWeight: "700", fontSize: 16 },
+  paypalBadge: { flexDirection: "row", alignItems: "center" },
+  paypalBadgeText: { fontSize: 16, fontWeight: "800", color: "#003087", fontStyle: "italic" },
+  ribBox: { backgroundColor: "#F0FDF4", borderRadius: 14, borderWidth: 1, borderColor: "#BBF7D0", padding: 16, gap: 8 },
+  ribTitle: { fontSize: 14, fontWeight: "700", color: "#065F46" },
+  ribText: { color: "#047857", fontSize: 13, lineHeight: 22 },
+  ribNote: { color: "#6B7280", fontSize: 12, lineHeight: 18 },
+  paypalInfoBox: { backgroundColor: "#EFF6FF", borderRadius: 14, borderWidth: 1, borderColor: "#BFDBFE", padding: 14 },
+  paypalInfoText: { color: "#1D4ED8", fontSize: 13, lineHeight: 20 },
+  actionBar: {
+    position: "absolute", bottom: 0, left: 0, right: 0,
+    padding: 16, backgroundColor: "white",
+    borderTopWidth: 1, borderTopColor: "#F3F4F6",
+  },
+  actionButton: { backgroundColor: "#E91E7B", borderRadius: 16, paddingVertical: 16, alignItems: "center" },
+  actionButtonPayPal: { backgroundColor: "#003087" },
+  actionButtonDisabled: { opacity: 0.6 },
+  actionButtonText: { color: "white", fontSize: 16, fontWeight: "700" },
+  paypalButtonContent: { flexDirection: "row", alignItems: "center" },
+  paypalButtonText: { color: "white", fontSize: 16, fontWeight: "800" },
+});

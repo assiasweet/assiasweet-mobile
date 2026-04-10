@@ -16,6 +16,8 @@ import type {
   Notification,
   DashboardKPIs,
   SiteSettings,
+  PayPalCreateOrderResponse,
+  PayPalCaptureResponse,
 } from "./types";
 
 // ============================================================
@@ -558,4 +560,46 @@ export async function updateInventory(
     method: "PUT",
     body: JSON.stringify({ productId, stock }),
   }, "staff");
+}
+
+// ============================================================
+// PayPal — Paiement en ligne
+// ============================================================
+
+/**
+ * Crée une commande PayPal et retourne l'ID PayPal.
+ * Le backend Vercel appelle l'API PayPal avec les clés configurées.
+ */
+export async function createPayPalOrder(params: {
+  amount: number;
+  currency?: string;
+  orderId?: string;
+  internalOrderId?: string;
+}): Promise<PayPalCreateOrderResponse> {
+  return request<PayPalCreateOrderResponse>("/checkout/paypal/create-order", {
+    method: "POST",
+    body: JSON.stringify({
+      amount: params.amount,
+      currency: params.currency ?? "EUR",
+      orderId: params.orderId,
+      internalOrderId: params.internalOrderId,
+    }),
+  }, "customer");
+}
+
+/**
+ * Capture le paiement PayPal après approbation de l'utilisateur.
+ * Met à jour la commande en BDD avec le statut PAYE.
+ */
+export async function capturePayPalOrder(params: {
+  paypalOrderId: string;
+  internalOrderId?: string;
+}): Promise<PayPalCaptureResponse> {
+  return request<PayPalCaptureResponse>("/checkout/paypal/capture", {
+    method: "POST",
+    body: JSON.stringify({
+      paypalOrderId: params.paypalOrderId,
+      internalOrderId: params.internalOrderId,
+    }),
+  }, "customer");
 }

@@ -154,3 +154,12 @@
 - [x] Backend Vercel : accepter Bearer token sur customer-profile, adresses, factures, orders, checkout/order
 - [x] App mobile : getCustomerProfile() dépaquette {customer:...} et normalise isApproved→status
 - [ ] Tester le flux : cold start, restart, retour foreground (sur appareil réel)
+
+## Intégration PayPal (10/04/2026)
+- [x] Audit backend PayPal (routes create-order + capture déjà prêtes, clés configurées sur Vercel)
+- [x] Types PayPalCreateOrderResponse + PayPalCaptureResponse dans lib/types.ts
+- [x] Fonctions createPayPalOrder() + capturePayPalOrder() dans lib/api.ts
+- [x] Écran paypal-payment.tsx : WebView PayPal avec détection return_url/cancel_url
+- [x] checkout.tsx : choix de paiement PayPal ou virement bancaire
+- [x] Bouton PayPal bleu marine + flux : créer commande → créer ordre PayPal → WebView → capture → confirmation
+- [ ] Tester le flux PayPal complet sur appareil réel (compte sandbox PayPal)

@@ -293,6 +293,21 @@ export interface CheckoutOrderBody {
   notes?: string;
 }
 
+// --- PayPal ---
+export interface PayPalCreateOrderResponse {
+  id: string;          // PayPal order ID (ex: "79E9992057325554X")
+  status: string;      // "PAYER_ACTION_REQUIRED" | "CREATED"
+  error?: string;
+}
+
+export interface PayPalCaptureResponse {
+  status: string;      // "COMPLETED" | "DECLINED"
+  captureId?: string;
+  paypalOrderId: string;
+  orderNumber?: string;
+  error?: string;
+}
+
 // --- Notifications ---
 export interface Notification {
   id: string;
