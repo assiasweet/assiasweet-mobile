@@ -77,17 +77,17 @@ const CATEGORY_SHORT_LABELS: Record<string, string> = {
   "destockage": "Déstock",
   "promotions": "Promos",
 };
-// Mapping slug catégorie → icône statique sur assiasweet.vercel.app
+// Mapping slug catégorie → icône statique sur www.assiasweet.pro
 const CATEGORY_ICONS: Record<string, string> = {
-  "bonbon-en-vrac": "https://assiasweet.vercel.app/bonbon_en_vrac.png",
-  "sucettes": "https://assiasweet.vercel.app/sucettes.png",
-  "chewing-gum": "https://assiasweet.vercel.app/chewing_gum.png",
-  "jumbos-ceintures": "https://assiasweet.vercel.app/jumbos_et_ceintures.png",
-  "snacking": "https://assiasweet.vercel.app/snacking.png",
-  "gadgets-sprays": "https://assiasweet.vercel.app/gadjets.png",
-  "tubos-presentoirs": "https://assiasweet.vercel.app/presentoirs.png",
-  "destockage": "https://assiasweet.vercel.app/destock.png",
-  "promotions": "https://assiasweet.vercel.app/destock.png",
+  "bonbon-en-vrac": "https://www.assiasweet.pro/bonbon_en_vrac.png",
+  "sucettes": "https://www.assiasweet.pro/sucettes.png",
+  "chewing-gum": "https://www.assiasweet.pro/chewing_gum.png",
+  "jumbos-ceintures": "https://www.assiasweet.pro/jumbos_et_ceintures.png",
+  "snacking": "https://www.assiasweet.pro/snacking.png",
+  "gadgets-sprays": "https://www.assiasweet.pro/gadjets.png",
+  "tubos-presentoirs": "https://www.assiasweet.pro/presentoirs.png",
+  "destockage": "https://www.assiasweet.pro/destock.png",
+  "promotions": "https://www.assiasweet.pro/destock.png",
 };
 function buildBannersFromCategories(cats: Category[]): Banner[] {
   const map: Record<string, { title: string; subtitle: string; cta: string; bg: string }> = {
@@ -239,9 +239,9 @@ export default function HomeScreen() {
   const loadData = useCallback(async () => {
     try {
       const [catRes, prodRes, featuredRes] = await Promise.all([
-        fetch("https://assiasweet.vercel.app/api/categories").then((r) => r.json()),
-        fetch("https://assiasweet.vercel.app/api/produits?limit=40").then((r) => r.json()),
-        fetch("https://assiasweet.vercel.app/api/produits?featured=true&limit=20").then((r) => r.json()),
+        fetch("https://www.assiasweet.pro/api/categories").then((r) => r.json()),
+        fetch("https://www.assiasweet.pro/api/produits?limit=40").then((r) => r.json()),
+        fetch("https://www.assiasweet.pro/api/produits?featured=true&limit=20").then((r) => r.json()),
       ]);
 
       if (catRes?.categories) {

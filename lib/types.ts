@@ -1,6 +1,6 @@
 // ============================================================
 // Types partagés AssiaSweet Mobile
-// Structure basée sur l'API réelle de assiasweet.vercel.app
+// Structure basée sur l'API réelle de www.assiasweet.pro
 // ============================================================
 
 // --- Auth ---

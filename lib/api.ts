@@ -23,7 +23,7 @@ import type {
 // ============================================================
 // Configuration
 // ============================================================
-const BASE_URL = "https://assiasweet.vercel.app/api";
+const BASE_URL = "https://www.assiasweet.pro/api";
 
 const CUSTOMER_TOKEN_KEY = "customer_token";
 const STAFF_TOKEN_KEY = "staff_token";

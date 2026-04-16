@@ -23,8 +23,8 @@ import { router, useLocalSearchParams } from "expo-router";
 import { capturePayPalOrder } from "@/lib/api";
 
 // URLs de retour configurées dans le backend PayPal
-const RETURN_URL = "https://assiasweet.vercel.app/checkout/confirmation";
-const CANCEL_URL = "https://assiasweet.vercel.app/checkout/confirmation?cancelled=1";
+const RETURN_URL = "https://www.assiasweet.pro/checkout/confirmation";
+const CANCEL_URL = "https://www.assiasweet.pro/checkout/confirmation?cancelled=1";
 
 // URL d'approbation PayPal (sandbox ou live selon PAYPAL_MODE)
 // Le backend retourne l'ID PayPal, on construit l'URL d'approbation ici
