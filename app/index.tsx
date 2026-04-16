@@ -35,9 +35,7 @@ export default function Index() {
     return <Redirect href={"/(staff)" as any} />;
   }
 
-  // App client : vers les tabs client
-  if (auth.status === "unauthenticated") {
-    return <Redirect href="/(auth)/login" />;
-  }
+  // App client : toujours vers la page d'accueil vitrine
+  // Les sections protégées (panier, commandes, compte) gèrent elles-mêmes la redirection vers login
   return <Redirect href="/(tabs)" />;
 }

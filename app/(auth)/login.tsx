@@ -21,10 +21,6 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  // Dans l'app staff : toujours en mode staff. Dans l'app client : toujours en mode customer.
-  const [loginType, setLoginType] = useState<"customer" | "staff">(
-    isStaffApp ? "staff" : "customer"
-  );
 
   const loginAsCustomer = useAuthStore((s) => s.loginAsCustomer);
   const loginAsStaff = useAuthStore((s) => s.loginAsStaff);
@@ -37,17 +33,15 @@ export default function LoginScreen() {
 
     setIsLoading(true);
     try {
-      if (loginType === "customer") {
-        await loginAsCustomer(email.trim().toLowerCase(), password);
-        // Redirection explicite vers l'accueil client
-        setTimeout(() => {
-          router.replace("/(tabs)/index" as never);
-        }, 50);
-      } else {
+      if (isStaffApp) {
         await loginAsStaff(email.trim().toLowerCase(), password);
-        // Redirection explicite vers le dashboard staff
         setTimeout(() => {
           router.replace("/(staff)/dashboard" as never);
+        }, 50);
+      } else {
+        await loginAsCustomer(email.trim().toLowerCase(), password);
+        setTimeout(() => {
+          router.replace("/(tabs)/index" as never);
         }, 50);
       }
     } catch (err: unknown) {
@@ -62,33 +56,35 @@ export default function LoginScreen() {
 
   return (
     <ScreenContainer containerClassName="bg-white" edges={["top", "left", "right", "bottom"]}>
-      {/* Bouton retour */}
-      <TouchableOpacity
-        onPress={() => {
-          if (canGoBack) {
-            router.back();
-          } else {
-            router.replace("/(tabs)/index" as never);
-          }
-        }}
-        style={{
-          position: "absolute",
-          top: 52,
-          left: 16,
-          zIndex: 10,
-          flexDirection: "row",
-          alignItems: "center",
-          gap: 4,
-          paddingVertical: 6,
-          paddingHorizontal: 10,
-          borderRadius: 20,
-          backgroundColor: "#F3F4F6",
-        }}
-        activeOpacity={0.7}
-      >
-        <Text style={{ fontSize: 18, color: "#374151" }}>‹</Text>
-        <Text style={{ fontSize: 13, fontWeight: "600", color: "#374151" }}>Retour</Text>
-      </TouchableOpacity>
+      {/* Bouton retour — uniquement dans l'app client */}
+      {!isStaffApp && (
+        <TouchableOpacity
+          onPress={() => {
+            if (canGoBack) {
+              router.back();
+            } else {
+              router.replace("/(tabs)/index" as never);
+            }
+          }}
+          style={{
+            position: "absolute",
+            top: 52,
+            left: 16,
+            zIndex: 10,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 4,
+            paddingVertical: 6,
+            paddingHorizontal: 10,
+            borderRadius: 20,
+            backgroundColor: "#F3F4F6",
+          }}
+          activeOpacity={0.7}
+        >
+          <Text style={{ fontSize: 18, color: "#374151" }}>‹</Text>
+          <Text style={{ fontSize: 13, fontWeight: "600", color: "#374151" }}>Retour</Text>
+        </TouchableOpacity>
+      )}
 
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -108,89 +104,22 @@ export default function LoginScreen() {
                 height: 120,
                 borderRadius: 28,
                 marginBottom: 12,
-                shadowColor: "#E91E7B",
+                shadowColor: isStaffApp ? "#1A5C2A" : "#E91E7B",
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.2,
                 shadowRadius: 10,
               }}
               resizeMode="contain"
             />
-            <Text style={{ fontSize: 14, color: "#6B7280", marginTop: 2 }}>
-              Grossiste B2B en confiseries
-            </Text>
-          </View>
-
-          {/* Sélecteur Espace Client / Espace Staff — masqué dans l'app staff */}
-          <View
-            style={{
-              marginHorizontal: 24,
-              marginBottom: 28,
-              flexDirection: "row",
-              backgroundColor: "#F3F4F6",
-              borderRadius: 14,
-              padding: 4,
-              display: isStaffApp ? "none" : "flex",
-            }}
-          >
-            <TouchableOpacity
-              style={{ flex: 1 }}
-              onPress={() => setLoginType("customer")}
-              activeOpacity={0.8}
-            >
-              <View
-                style={{
-                  paddingVertical: 12,
-                  borderRadius: 11,
-                  alignItems: "center",
-                  backgroundColor: loginType === "customer" ? "#E91E7B" : "transparent",
-                  shadowColor: loginType === "customer" ? "#E91E7B" : "transparent",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 4,
-                  elevation: loginType === "customer" ? 3 : 0,
-                }}
-              >
-                <Text
-                  style={{
-                    fontWeight: "700",
-                    fontSize: 14,
-                    color: loginType === "customer" ? "white" : "#6B7280",
-                  }}
-                >
-                  🛒 Espace Client
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={{ flex: 1 }}
-              onPress={() => setLoginType("staff")}
-              activeOpacity={0.8}
-            >
-              <View
-                style={{
-                  paddingVertical: 12,
-                  borderRadius: 11,
-                  alignItems: "center",
-                  backgroundColor: loginType === "staff" ? "#1E1E1E" : "transparent",
-                  shadowColor: loginType === "staff" ? "#1E1E1E" : "transparent",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 4,
-                  elevation: loginType === "staff" ? 3 : 0,
-                }}
-              >
-                <Text
-                  style={{
-                    fontWeight: "700",
-                    fontSize: 14,
-                    color: loginType === "staff" ? "white" : "#6B7280",
-                  }}
-                >
-                  ⚙️ Espace Staff
-                </Text>
-              </View>
-            </TouchableOpacity>
+            {isStaffApp ? (
+              <Text style={{ fontSize: 18, fontWeight: "800", color: "#1A5C2A", marginTop: 4 }}>
+                Espace Staff
+              </Text>
+            ) : (
+              <Text style={{ fontSize: 14, color: "#6B7280", marginTop: 2 }}>
+                Grossiste B2B en confiseries
+              </Text>
+            )}
           </View>
 
           {/* Formulaire */}
@@ -260,8 +189,8 @@ export default function LoginScreen() {
               </View>
             </View>
 
-            {/* Mot de passe oublié */}
-            {loginType === "customer" && (
+            {/* Mot de passe oublié — uniquement app client */}
+            {!isStaffApp && (
               <TouchableOpacity
                 onPress={() => router.push("/(auth)/reset-password" as never)}
                 activeOpacity={0.7}
@@ -279,13 +208,13 @@ export default function LoginScreen() {
               disabled={isLoading}
               activeOpacity={0.85}
               style={{
-                backgroundColor: loginType === "customer" ? "#E91E7B" : "#1E1E1E",
+                backgroundColor: isStaffApp ? "#1A5C2A" : "#E91E7B",
                 borderRadius: 14,
                 paddingVertical: 16,
                 alignItems: "center",
                 marginTop: 4,
                 opacity: isLoading ? 0.7 : 1,
-                shadowColor: loginType === "customer" ? "#E91E7B" : "#000",
+                shadowColor: isStaffApp ? "#1A5C2A" : "#E91E7B",
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.25,
                 shadowRadius: 8,
@@ -296,13 +225,13 @@ export default function LoginScreen() {
                 <ActivityIndicator color="white" />
               ) : (
                 <Text style={{ color: "white", fontSize: 16, fontWeight: "700", letterSpacing: 0.3 }}>
-                  {loginType === "customer" ? "Se connecter" : "Accès Staff"}
+                  Se connecter
                 </Text>
               )}
             </TouchableOpacity>
 
-            {/* Inscription */}
-            {loginType === "customer" && (
+            {/* Inscription — uniquement app client */}
+            {!isStaffApp && (
               <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 8 }}>
                 <Text style={{ color: "#6B7280", fontSize: 14 }}>Pas encore de compte ? </Text>
                 <TouchableOpacity
@@ -317,8 +246,8 @@ export default function LoginScreen() {
             )}
           </View>
 
-          {/* Continuer sans compte */}
-          {loginType === "customer" && (
+          {/* Continuer sans compte — uniquement app client */}
+          {!isStaffApp && (
             <View style={{ alignItems: "center", marginTop: 16 }}>
               <TouchableOpacity
                 onPress={() => {

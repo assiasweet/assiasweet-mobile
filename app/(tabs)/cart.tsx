@@ -2,6 +2,7 @@ import { View, Text, FlatList, TouchableOpacity, Image, Alert } from "react-nati
 import { router } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useCartStore } from "@/store/cart";
+import { useAuthStore } from "@/store/auth";
 import type { CartItem } from "@/lib/types";
 
 const nav = router as unknown as { push: (path: string) => void };
@@ -87,7 +88,40 @@ function CartItemRow({ item }: { item: CartItem }) {
   );
 }
 
+function LoginPromptCart() {
+  return (
+    <ScreenContainer className="items-center justify-center px-8">
+      <Text style={{ fontSize: 50, marginBottom: 16 }}>🛒</Text>
+      <Text style={{ fontSize: 20, fontWeight: "800", color: "#1E1E1E", textAlign: "center" }}>
+        Mon panier
+      </Text>
+      <Text style={{ color: "#9CA3AF", fontSize: 15, textAlign: "center", marginTop: 8, lineHeight: 22 }}>
+        Connectez-vous pour accéder à votre panier et passer commande.
+      </Text>
+      <TouchableOpacity
+        onPress={() => router.push("/(auth)/login" as never)}
+        style={{
+          backgroundColor: "#E91E7B",
+          borderRadius: 14,
+          paddingVertical: 14,
+          paddingHorizontal: 32,
+          marginTop: 24,
+        }}
+      >
+        <Text style={{ color: "white", fontSize: 16, fontWeight: "700" }}>Se connecter</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={() => router.push("/(auth)/register" as never)}
+        style={{ marginTop: 12 }}
+      >
+        <Text style={{ color: "#E91E7B", fontSize: 14, fontWeight: "600" }}>Créer un compte</Text>
+      </TouchableOpacity>
+    </ScreenContainer>
+  );
+}
+
 export default function CartScreen() {
+  const auth = useAuthStore((s) => s.auth);
   const items = useCartStore((s) => s.items);
   const clearCart = useCartStore((s) => s.clearCart);
   const getSubtotalHT = useCartStore((s) => s.getSubtotalHT);
@@ -98,6 +132,10 @@ export default function CartScreen() {
   const totalTVA = getTotalTVA();
   const totalTTC = getTotalTTC();
   const isMinimumReached = subtotalHT >= MIN_ORDER_HT;
+
+  if (auth.status !== "customer") {
+    return <LoginPromptCart />;
+  }
   const remaining = MIN_ORDER_HT - subtotalHT;
 
   const handleOrder = () => {

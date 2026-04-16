@@ -62,9 +62,45 @@ function MenuItem({
   );
 }
 
+function LoginPromptAccount() {
+  return (
+    <ScreenContainer className="items-center justify-center px-8">
+      <Text style={{ fontSize: 50, marginBottom: 16 }}>👤</Text>
+      <Text style={{ fontSize: 20, fontWeight: "800", color: "#1E1E1E", textAlign: "center" }}>
+        Mon compte
+      </Text>
+      <Text style={{ color: "#9CA3AF", fontSize: 15, textAlign: "center", marginTop: 8, lineHeight: 22 }}>
+        Connectez-vous pour accéder à votre espace client, vos adresses et vos factures.
+      </Text>
+      <TouchableOpacity
+        onPress={() => router.push("/(auth)/login" as never)}
+        style={{
+          backgroundColor: "#E91E7B",
+          borderRadius: 14,
+          paddingVertical: 14,
+          paddingHorizontal: 32,
+          marginTop: 24,
+        }}
+      >
+        <Text style={{ color: "white", fontSize: 16, fontWeight: "700" }}>Se connecter</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={() => router.push("/(auth)/register" as never)}
+        style={{ marginTop: 12 }}
+      >
+        <Text style={{ color: "#E91E7B", fontSize: 14, fontWeight: "600" }}>Créer un compte</Text>
+      </TouchableOpacity>
+    </ScreenContainer>
+  );
+}
+
 export default function AccountScreen() {
   const auth = useAuthStore((s) => s.auth);
   const logout = useAuthStore((s) => s.logout);
+
+  if (auth.status !== "customer") {
+    return <LoginPromptAccount />;
+  }
 
   const customer = auth.status === "customer" ? auth.customer : null;
 

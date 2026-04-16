@@ -10,6 +10,7 @@ import {
 import { router } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { getCustomerOrders } from "@/lib/api";
+import { useAuthStore } from "@/store/auth";
 import type { Order, OrderStatus } from "@/lib/types";
 
 const nav = router as unknown as { push: (path: string) => void };
@@ -97,10 +98,47 @@ function OrderCard({ order }: { order: Order }) {
   );
 }
 
+function LoginPrompt() {
+  return (
+    <ScreenContainer className="items-center justify-center px-8">
+      <Text style={{ fontSize: 50, marginBottom: 16 }}>📦</Text>
+      <Text style={{ fontSize: 20, fontWeight: "800", color: "#1E1E1E", textAlign: "center" }}>
+        Mes commandes
+      </Text>
+      <Text style={{ color: "#9CA3AF", fontSize: 15, textAlign: "center", marginTop: 8, lineHeight: 22 }}>
+        Connectez-vous pour consulter l'historique de vos commandes.
+      </Text>
+      <TouchableOpacity
+        onPress={() => router.push("/(auth)/login" as never)}
+        style={{
+          backgroundColor: "#E91E7B",
+          borderRadius: 14,
+          paddingVertical: 14,
+          paddingHorizontal: 32,
+          marginTop: 24,
+        }}
+      >
+        <Text style={{ color: "white", fontSize: 16, fontWeight: "700" }}>Se connecter</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        onPress={() => router.push("/(auth)/register" as never)}
+        style={{ marginTop: 12 }}
+      >
+        <Text style={{ color: "#E91E7B", fontSize: 14, fontWeight: "600" }}>Créer un compte</Text>
+      </TouchableOpacity>
+    </ScreenContainer>
+  );
+}
+
 export default function OrdersScreen() {
+  const auth = useAuthStore((s) => s.auth);
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  if (auth.status !== "customer") {
+    return <LoginPrompt />;
+  }
 
   const loadOrders = async () => {
     try {
