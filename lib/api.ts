@@ -435,7 +435,12 @@ export async function getAdminOrders(filters?: {
 }
 
 export async function getAdminOrder(id: string): Promise<Order> {
-  return request<Order>(`/admin/commandes/${id}`, {}, "staff");
+  const data = await request<{ order: Order } | Order>(`/admin/commandes/${id}`, {}, "staff");
+  // L'API renvoie { order: {...} } — extraire l'objet order
+  if (data && typeof data === "object" && "order" in data) {
+    return (data as { order: Order }).order;
+  }
+  return data as Order;
 }
 
 export async function updateOrderStatus(
@@ -443,10 +448,14 @@ export async function updateOrderStatus(
   status: string,
   trackingNumber?: string
 ): Promise<Order> {
-  return request<Order>(`/admin/commandes/${id}`, {
-    method: "PUT",
+  const data = await request<{ order: Order } | Order>(`/admin/commandes/${id}`, {
+    method: "PATCH",
     body: JSON.stringify({ status, trackingNumber }),
   }, "staff");
+  if (data && typeof data === "object" && "order" in data) {
+    return (data as { order: Order }).order;
+  }
+  return data as Order;
 }
 
 // ============================================================

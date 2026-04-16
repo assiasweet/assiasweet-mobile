@@ -183,10 +183,16 @@ export interface OrderItem {
   id: string;
   productId: string;
   productName: string;
+  productSku?: string;
+  imageUrl?: string;
   quantity: number;
-  unitPriceHT: number | string;
-  tvaRate: number;
+  unitPriceHT?: number | string;
+  priceHT?: number | string;   // Alias API admin
+  priceTTC?: number | string;  // Alias API admin
+  tvaRate?: number;
+  tva?: number;                // Alias API admin
   totalHT: number;
+  totalTTC?: number;
   product?: Product;
 }
 
@@ -195,22 +201,45 @@ export interface Order {
   orderNumber: string;
   customerId?: string;
   customer?: Customer;
+  // Champs client directs renvoyés par l'API admin (détail commande)
+  companyName?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  siret?: string;
   status: OrderStatus;
+  paymentStatus?: string;
   subtotalHT: number;
-  shippingHT: number;
-  shippingCost: number;
-  totalHT: number;
+  shippingHT?: number;
+  shippingCost?: number;
+  shippingCostHT?: number;
+  totalHT?: number;
   totalTVA: number;
   totalTTC: number;
+  discount?: number;
+  promoCode?: string;
+  salesChannel?: string;
   shippingMethod: string;
   paymentMethod?: string;
   trackingNumber?: string;
   shippingAddress?: { street: string; postalCode: string; city: string; country?: string } | string;
+  shippingCity?: string;
+  shippingPostalCode?: string;
+  shippingCountry?: string;
   billingAddress?: string;
+  billingCity?: string;
+  billingPostalCode?: string;
+  billingCountry?: string;
   invoiceId?: string;
   deliveryNoteUrl?: string;
   notes?: string;
+  internalNotes?: string;
   createdAt: string;
+  updatedAt?: string;
+  shippedAt?: string;
+  deliveredAt?: string;
+  itemsCount?: number;
   items?: OrderItem[];
 }
 

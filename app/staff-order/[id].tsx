@@ -138,14 +138,19 @@ export default function StaffOrderDetailScreen() {
         <View style={{ backgroundColor: "#F9FAFB", borderRadius: 14, padding: 14, marginBottom: 16 }}>
           <Text style={{ fontSize: 13, fontWeight: "700", color: "#6B7280", marginBottom: 8 }}>CLIENT</Text>
           <Text style={{ fontSize: 16, fontWeight: "700", color: "#1E1E1E" }}>
-            {order.customer?.companyName || "—"}
+            {order.companyName || order.customer?.companyName || "—"}
           </Text>
           <Text style={{ color: "#6B7280", fontSize: 13, marginTop: 2 }}>
-            {order.customer?.firstName} {order.customer?.lastName}
+            {order.firstName || order.customer?.firstName}{" "}
+            {order.lastName || order.customer?.lastName}
           </Text>
-          <Text style={{ color: "#6B7280", fontSize: 13 }}>{order.customer?.email}</Text>
-          {order.customer?.phone && (
-            <Text style={{ color: "#6B7280", fontSize: 13 }}>{order.customer.phone}</Text>
+          <Text style={{ color: "#6B7280", fontSize: 13 }}>
+            {order.email || order.customer?.email}
+          </Text>
+          {(order.phone || order.customer?.phone) && (
+            <Text style={{ color: "#6B7280", fontSize: 13 }}>
+              {order.phone || order.customer?.phone}
+            </Text>
           )}
         </View>
 
@@ -178,7 +183,14 @@ export default function StaffOrderDetailScreen() {
         <Text style={{ fontSize: 16, fontWeight: "800", color: "#1E1E1E", marginBottom: 12 }}>
           Articles ({order.items?.length ?? 0})
         </Text>
-        {order.items?.map((item) => (
+        {order.items?.map((item) => {
+          // Compatibilité API : priceHT (admin) ou unitPriceHT (client)
+          const unitPrice = Number(item.priceHT ?? item.unitPriceHT ?? 0);
+          const itemTotal = Number(item.totalHT ?? (item.quantity * unitPrice));
+          const imageUri = item.imageUrl ?? item.product?.images?.[0];
+          const name = item.productName ?? item.product?.name ?? "Produit";
+          const sku = item.productSku ?? item.product?.sku;
+          return (
           <View
             key={item.id}
             style={{
@@ -191,8 +203,8 @@ export default function StaffOrderDetailScreen() {
             }}
           >
             <View style={{ width: 52, height: 52, backgroundColor: "#F9FAFB", borderRadius: 10, overflow: "hidden" }}>
-              {item.product?.images?.[0] ? (
-                <Image source={{ uri: item.product.images[0] }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+              {imageUri ? (
+                <Image source={{ uri: imageUri }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
               ) : (
                 <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
                   <Text style={{ fontSize: 22 }}>🍬</Text>
@@ -201,20 +213,21 @@ export default function StaffOrderDetailScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 13, fontWeight: "600", color: "#1E1E1E" }} numberOfLines={2}>
-                {item.product?.name || item.productName}
+                {name}
               </Text>
               <Text style={{ color: "#9CA3AF", fontSize: 12 }}>
-                {item.quantity} × {Number(item.unitPriceHT).toFixed(2)} € HT
+                {item.quantity} × {unitPrice.toFixed(2)} € HT
               </Text>
-              {item.product?.sku && (
-                <Text style={{ color: "#9CA3AF", fontSize: 11 }}>SKU: {item.product.sku}</Text>
+              {sku && (
+                <Text style={{ color: "#9CA3AF", fontSize: 11 }}>SKU: {sku}</Text>
               )}
             </View>
             <Text style={{ color: "#1E1E1E", fontSize: 14, fontWeight: "700" }}>
-              {(item.quantity * Number(item.unitPriceHT)).toFixed(2)} €
+              {itemTotal.toFixed(2)} €
             </Text>
           </View>
-        ))}
+          );
+        })}
 
         {/* Totaux */}
         <View style={{ marginTop: 16, backgroundColor: "#F9FAFB", borderRadius: 14, padding: 16, gap: 8 }}>
