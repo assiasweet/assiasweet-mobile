@@ -235,6 +235,39 @@ export async function loginStaff(
   return { user: data.user, token: data.token };
 }
 
+/**
+ * Décode un segment base64url sans dépendre de `atob` (absent sur Hermes Android).
+ * Utilise une implémentation pure JS compatible avec tous les runtimes React Native.
+ */
+function decodeBase64Url(base64url: string): string {
+  // Convertir base64url → base64 standard
+  const base64 = base64url.replace(/-/g, "+").replace(/_/g, "/");
+  // Ajouter le padding manquant
+  const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
+  // Table de décodage base64
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  let result = "";
+  let i = 0;
+  while (i < padded.length) {
+    const a = chars.indexOf(padded[i++]);
+    const b = chars.indexOf(padded[i++]);
+    const c = chars.indexOf(padded[i++]);
+    const d = chars.indexOf(padded[i++]);
+    if (a < 0 || b < 0) break;
+    result += String.fromCharCode((a << 2) | (b >> 4));
+    if (c >= 0) result += String.fromCharCode(((b & 15) << 4) | (c >> 2));
+    if (d >= 0) result += String.fromCharCode(((c & 3) << 6) | d);
+  }
+  // Décoder les caractères UTF-8
+  try {
+    return decodeURIComponent(
+      result.split("").map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2)).join("")
+    );
+  } catch {
+    return result;
+  }
+}
+
 export async function getStaffProfile(): Promise<StaffUser> {
   // /api/admin/me uses NextAuth session (not Bearer JWT) → decode JWT locally instead
   const token = await getStaffToken();
@@ -242,14 +275,8 @@ export async function getStaffProfile(): Promise<StaffUser> {
   try {
     const parts = token.split(".");
     if (parts.length !== 3) throw new Error("Invalid JWT");
-    const payload = JSON.parse(
-      decodeURIComponent(
-        atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"))
-          .split("")
-          .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-          .join("")
-      )
-    );
+    const payloadJson = decodeBase64Url(parts[1]);
+    const payload = JSON.parse(payloadJson);
     // Check expiry
     if (payload.exp && payload.exp * 1000 < Date.now()) {
       throw new Error("Staff token expired");
