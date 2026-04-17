@@ -55,7 +55,7 @@ const BRANDS = [
   { name: "Nom", logo: "https://files.manuscdn.com/user_upload_by_module/session_file/310519663351627308/qkWGvqtFwtWjZVhy.png" },
 ];
 
-// ─── Bannières slider basées sur les catégories réelles ───────────────────────
+// ─── Bannières slider depuis l'API /api/sliders/generate ────────────────────
 type Banner = {
   id: string;
   title: string;
@@ -63,19 +63,6 @@ type Banner = {
   cta: string;
   imageUrl?: string;
   bg: string;
-};
-
-// Labels courts pour les catégories (évite la troncature)
-const CATEGORY_SHORT_LABELS: Record<string, string> = {
-  "bonbon-en-vrac": "Vrac",
-  "sucettes": "Sucettes",
-  "chewing-gum": "Chewing",
-  "jumbos-ceintures": "Jumbos",
-  "snacking": "Snacking",
-  "gadgets-sprays": "Gadgets",
-  "tubos-presentoirs": "Tubos",
-  "destockage": "Déstock",
-  "promotions": "Promos",
 };
 // Mapping slug catégorie → icône statique sur www.assiasweet.pro
 const CATEGORY_ICONS: Record<string, string> = {
@@ -89,29 +76,35 @@ const CATEGORY_ICONS: Record<string, string> = {
   "destockage": "https://www.assiasweet.pro/destock.png",
   "promotions": "https://www.assiasweet.pro/destock.png",
 };
-function buildBannersFromCategories(cats: Category[]): Banner[] {
-  const map: Record<string, { title: string; subtitle: string; cta: string; bg: string }> = {
-    "bonbon-en-vrac": { title: "Bonbons en Vrac", subtitle: "Achetez au poids, prix grossiste HT", cta: "Voir les bonbons", bg: "#E91E7B" },
-    "chewing-gum": { title: "Chewing-Gums", subtitle: "Toutes les marques : Malabar, Mentos, Lutti…", cta: "Voir les chewing-gums", bg: "#9C27B0" },
-    "sucettes": { title: "Sucettes", subtitle: "Sucettes en vrac et en présentoir", cta: "Voir les sucettes", bg: "#E65100" },
-    "snacking": { title: "Snacking", subtitle: "Chips, popcorn, biscuits salés en gros", cta: "Voir le snacking", bg: "#1565C0" },
-    "promotions": { title: "Promotions", subtitle: "Déstockage et offres spéciales en cours", cta: "Voir les promos", bg: "#2E7D32" },
-    "gadgets-sprays": { title: "Gadgets & Sprays", subtitle: "Confiseries originales et gadgets sucrés", cta: "Découvrir", bg: "#6A1B9A" },
-    "jumbos-ceintures": { title: "Jumbos & Ceintures", subtitle: "Bonbons géants et ceintures acidulées", cta: "Voir les jumbos", bg: "#AD1457" },
-    "destockage": { title: "Déstockage", subtitle: "Produits à prix cassés, stocks limités", cta: "Profiter des offres", bg: "#BF360C" },
-    "tubos-presentoirs": { title: "Tubos & Présentoirs", subtitle: "Solutions clé en main pour vos rayons", cta: "Voir les présentoirs", bg: "#00695C" },
-  };
-  return cats
-    .filter((c) => c.imageUrl)
-    .slice(0, 5)
-    .map((c) => ({
-      id: c.id,
-      title: map[c.slug]?.title ?? c.name,
-      subtitle: map[c.slug]?.subtitle ?? "",
-      cta: map[c.slug]?.cta ?? "Voir les produits",
-      imageUrl: c.imageUrl,
-      bg: map[c.slug]?.bg ?? "#E91E7B",
-    }));
+// Labels courts pour les catégories (évite la troncature)
+const CATEGORY_SHORT_LABELS: Record<string, string> = {
+  "bonbon-en-vrac": "Vrac",
+  "sucettes": "Sucettes",
+  "chewing-gum": "Chewing",
+  "jumbos-ceintures": "Jumbos",
+  "snacking": "Snacking",
+  "gadgets-sprays": "Gadgets",
+  "tubos-presentoirs": "Tubos",
+  "destockage": "Déstock",
+  "promotions": "Promos",
+};
+// Convertit les sliders de l'API en bannières affichables
+const SLIDER_COLORS = ["#E91E7B", "#9C27B0", "#E65100", "#1565C0", "#2E7D32"];
+function buildBannersFromSliders(sliders: Array<{
+  id: number | string;
+  title?: string;
+  subtitle?: string;
+  cta_text?: string;
+  image_url?: string;
+}>): Banner[] {
+  return sliders.map((s, i) => ({
+    id: String(s.id),
+    title: s.title ?? "AssiaSweet",
+    subtitle: s.subtitle ?? "",
+    cta: s.cta_text ?? "Voir les produits",
+    imageUrl: s.image_url ?? undefined,
+    bg: SLIDER_COLORS[i % SLIDER_COLORS.length],
+  }));
 }
 
 //// ─── Composant FadeIn Section ───────────────────────────────────────────────
@@ -238,15 +231,34 @@ export default function HomeScreen() {
 
   const loadData = useCallback(async () => {
     try {
-      const [catRes, prodRes, featuredRes] = await Promise.all([
+      const [catRes, prodRes, featuredRes, slidersRes] = await Promise.all([
         fetch("https://www.assiasweet.pro/api/categories").then((r) => r.json()),
         fetch("https://www.assiasweet.pro/api/produits?limit=40").then((r) => r.json()),
         fetch("https://www.assiasweet.pro/api/produits?featured=true&limit=20").then((r) => r.json()),
+        fetch("https://www.assiasweet.pro/api/sliders/generate").then((r) => r.json()).catch(() => ({ sliders: [] })),
       ]);
 
       if (catRes?.categories) {
         setCategories(catRes.categories);
-        setBanners(buildBannersFromCategories(catRes.categories));
+      }
+      // Sliders depuis l'admin du site (même contenu que le site web)
+      const rawSliders = (slidersRes?.sliders ?? []) as Array<{ id: number | string; title?: string; subtitle?: string; cta_text?: string; image_url?: string }>;
+      if (rawSliders.length > 0) {
+        setBanners(buildBannersFromSliders(rawSliders));
+      } else if (catRes?.categories) {
+        // Fallback : bannières depuis les catégories si aucun slider configuré
+        const fallbackBanners = (catRes.categories as Array<{ id: string; slug: string; name: string; imageUrl?: string }>)
+          .filter((c) => c.imageUrl)
+          .slice(0, 5)
+          .map((c, i) => ({
+            id: c.id,
+            title: c.name,
+            subtitle: "",
+            cta: "Voir les produits",
+            imageUrl: c.imageUrl,
+            bg: SLIDER_COLORS[i % SLIDER_COLORS.length],
+          }));
+        setBanners(fallbackBanners);
       }
 
       const all: Product[] = prodRes?.products ?? prodRes?.data ?? (Array.isArray(prodRes) ? prodRes : []);
