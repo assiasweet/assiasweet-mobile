@@ -269,7 +269,9 @@ export default function LoginScreen() {
           {/* Footer */}
           <View style={{ alignItems: "center", marginTop: 32, paddingHorizontal: 24 }}>
             <Text style={{ color: "#9CA3AF", fontSize: 12, textAlign: "center", lineHeight: 18 }}>
-              Plateforme réservée aux professionnels{"\n"}(épiceries, forains, revendeurs)
+              {isStaffApp
+                ? "Accès réservé au staff AssiaSweet"
+                : "Plateforme réservée aux professionnels\n(épiceries, forains, revendeurs)"}
             </Text>
           </View>
         </ScrollView>

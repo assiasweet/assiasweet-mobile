@@ -59,7 +59,7 @@ function DashboardSkeleton() {
 
 // ─── Grande card CA ───────────────────────────────────────────────────────────
 function CACard({ value, ordersMonth }: { value: number; ordersMonth: number }) {
-  const ca = (value / 100).toFixed(2);
+  const ca = Number(value).toFixed(2);
   return (
     <TouchableOpacity
       style={styles.caCard}
@@ -253,7 +253,7 @@ export default function DashboardScreen() {
                 <KPICard
                   icon="🛒"
                   label="Panier moyen"
-                  value={`${((kpis?.avgCart ?? 0) / 100).toFixed(0)} €`}
+                  value={`${Number(kpis?.avgCart ?? 0).toFixed(0)} €`}
                   accent={GREEN_MID}
                 />
               </View>
@@ -298,13 +298,13 @@ export default function DashboardScreen() {
                     >
                       <View style={{ flex: 1 }}>
                         <Text style={styles.orderNumber}>{order.orderNumber}</Text>
-                        <Text style={styles.orderClient}>{order.customer?.companyName || "Client"}</Text>
+                        <Text style={styles.orderClient}>{order.customerName || order.customer?.companyName || "Client"}</Text>
                       </View>
                       <View style={{ alignItems: "flex-end", gap: 4 }}>
                         <View style={{ backgroundColor: sc.bg, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 3 }}>
                           <Text style={{ color: sc.color, fontSize: 11, fontWeight: "700" }}>{sc.label}</Text>
                         </View>
-                        <Text style={styles.orderAmount}>{Number(order.totalTTC).toFixed(0)} €</Text>
+                        <Text style={styles.orderAmount}>{Number(order.total ?? order.totalTTC ?? 0).toFixed(0)} €</Text>
                       </View>
                     </TouchableOpacity>
                   );

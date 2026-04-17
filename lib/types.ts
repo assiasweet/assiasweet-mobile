@@ -241,6 +241,9 @@ export interface Order {
   deliveredAt?: string;
   itemsCount?: number;
   items?: OrderItem[];
+  // Champs renvoyés par l'API dashboard (recentOrders)
+  customerName?: string;   // ex: "Hawi Salem (Amal way)"
+  total?: number;          // montant total (alias de totalTTC pour le dashboard)
 }
 
 export interface OrdersResponse {
