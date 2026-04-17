@@ -38,13 +38,17 @@ export const unstable_settings = { initialRouteName: isStaffApp ? "(staff)" : "(
 export default function RootLayout() {
   const auth = useAuthStore((s) => s.auth);
   const initialize = useAuthStore((s) => s.initialize);
-  const hasInitialized = useRef(false);
   const splashHidden = useRef(false);
 
   // Pour l'app client uniquement : afficher l'animation custom
   const [showSplash, setShowSplash] = useState(!isStaffApp);
-  // Indique si l'auth est résolue (peu importe le résultat)
-  const [authReady, setAuthReady] = useState(false);
+
+  // authReady : vrai dès que l'état auth est connu (pas idle/loading)
+  // Si auth est déjà résolue (relancement), on part directement à true
+  const [authReady, setAuthReady] = useState(() => {
+    const currentAuth = useAuthStore.getState().auth;
+    return currentAuth.status !== "idle" && currentAuth.status !== "loading";
+  });
 
   // Fonction utilitaire pour cacher le splash natif (une seule fois)
   const hideSplashNative = useCallback(async () => {
@@ -57,23 +61,38 @@ export default function RootLayout() {
     }
   }, []);
 
-  // Lancer l'initialisation une seule fois + timeout de sécurité 5s
+  // Lancer l'initialisation si nécessaire
   useEffect(() => {
-    if (hasInitialized.current) return;
-    hasInitialized.current = true;
+    // Si auth déjà prête (relancement avec état en mémoire), cacher le splash immédiatement
+    const currentAuth = useAuthStore.getState().auth;
+    if (currentAuth.status !== "idle" && currentAuth.status !== "loading") {
+      setAuthReady(true);
+      hideSplashNative();
+      return;
+    }
 
-    // Timeout de sécurité : si initialize() ne répond pas en 5s, on continue quand même
+    // Timeout de sécurité réduit à 3s (au lieu de 5s)
     const timeout = setTimeout(() => {
       setAuthReady(true);
       hideSplashNative();
-    }, 5000);
+    }, 3000);
 
     initialize().finally(() => {
       clearTimeout(timeout);
       setAuthReady(true);
       hideSplashNative();
     });
+
+    return () => clearTimeout(timeout);
   }, [initialize, hideSplashNative]);
+
+  // Surveiller les changements d'auth pour débloquer si initialize() finit
+  useEffect(() => {
+    if (auth.status !== "idle" && auth.status !== "loading") {
+      setAuthReady(true);
+      hideSplashNative();
+    }
+  }, [auth.status, hideSplashNative]);
 
   // Callback quand l'animation splash custom est terminée
   const handleSplashFinish = useCallback(() => {
