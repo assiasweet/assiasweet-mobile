@@ -38,70 +38,113 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   auth: { status: "idle" },
 
   initialize: async () => {
+    // Stratégie CACHE-FIRST :
+    // 1. Lire le cache local immédiatement (SecureStore, synchrone-ish)
+    // 2. Afficher l'app avec les données en cache
+    // 3. Vérifier le token en arrière-plan (sans bloquer l'UI)
+    // Cela évite les crashs causés par des requêtes réseau lentes au démarrage
+
     set({ auth: { status: "loading" } });
+
     try {
-      // --- Try customer token ---
-      const customerToken = await getCustomerToken();
-      if (customerToken) {
+      // ─── Étape 1 : Lire le cache immédiatement ───────────────────────────
+      const [cachedCustomerStr, cachedStaffStr, customerToken, staffToken] = await Promise.all([
+        SecureStore.getItemAsync(CACHED_CUSTOMER_KEY).catch(() => null),
+        SecureStore.getItemAsync(CACHED_STAFF_KEY).catch(() => null),
+        getCustomerToken().catch(() => null),
+        getStaffToken().catch(() => null),
+      ]);
+
+      // ─── Étape 2 : Restaurer depuis le cache si token présent ────────────
+      if (staffToken && cachedStaffStr) {
         try {
-          const customer = await getCustomerProfile();
-          // Cache for offline
-          await SecureStore.setItemAsync(CACHED_CUSTOMER_KEY, JSON.stringify(customer));
-          if (customer.status === "PENDING") {
-            set({ auth: { status: "pending", customer } });
-          } else if (customer.status === "APPROVED") {
-            set({ auth: { status: "customer", customer } });
-          } else {
-            await SecureStore.deleteItemAsync(CUSTOMER_TOKEN_KEY);
-            await SecureStore.deleteItemAsync(CACHED_CUSTOMER_KEY);
-          }
+          const user: StaffUser = JSON.parse(cachedStaffStr);
+          // Afficher immédiatement avec les données en cache
+          set({ auth: { status: "staff", user } });
+          // Vérifier le token en arrière-plan (sans bloquer)
+          getStaffProfile()
+            .then((freshUser) => {
+              SecureStore.setItemAsync(CACHED_STAFF_KEY, JSON.stringify(freshUser)).catch(() => {});
+              set({ auth: { status: "staff", user: freshUser } });
+            })
+            .catch(() => {
+              // Token expiré → déconnecter proprement
+              SecureStore.deleteItemAsync(STAFF_TOKEN_KEY).catch(() => {});
+              SecureStore.deleteItemAsync(CACHED_STAFF_KEY).catch(() => {});
+              set({ auth: { status: "unauthenticated" } });
+            });
           return;
         } catch {
-          // API failed — try cached customer
-          const cached = await SecureStore.getItemAsync(CACHED_CUSTOMER_KEY);
-          if (cached) {
-            try {
-              const customer: Customer = JSON.parse(cached);
-              if (customer.status === "APPROVED") {
-                set({ auth: { status: "customer", customer } });
-                return;
-              }
-            } catch {
-              // ignore
-            }
-          }
-          await SecureStore.deleteItemAsync(CUSTOMER_TOKEN_KEY);
-          await SecureStore.deleteItemAsync(CACHED_CUSTOMER_KEY);
+          // JSON corrompu, continuer
         }
       }
 
-      // --- Try staff token ---
-      const staffToken = await getStaffToken();
+      if (customerToken && cachedCustomerStr) {
+        try {
+          const customer: Customer = JSON.parse(cachedCustomerStr);
+          if (customer.status === "APPROVED") {
+            set({ auth: { status: "customer", customer } });
+          } else if (customer.status === "PENDING") {
+            set({ auth: { status: "pending", customer } });
+          } else {
+            set({ auth: { status: "unauthenticated" } });
+            return;
+          }
+          // Vérifier en arrière-plan
+          getCustomerProfile()
+            .then((freshCustomer) => {
+              SecureStore.setItemAsync(CACHED_CUSTOMER_KEY, JSON.stringify(freshCustomer)).catch(() => {});
+              if (freshCustomer.status === "APPROVED") {
+                set({ auth: { status: "customer", customer: freshCustomer } });
+              } else if (freshCustomer.status === "PENDING") {
+                set({ auth: { status: "pending", customer: freshCustomer } });
+              }
+            })
+            .catch(() => {
+              // Token expiré → déconnecter
+              SecureStore.deleteItemAsync(CUSTOMER_TOKEN_KEY).catch(() => {});
+              SecureStore.deleteItemAsync(CACHED_CUSTOMER_KEY).catch(() => {});
+              set({ auth: { status: "unauthenticated" } });
+            });
+          return;
+        } catch {
+          // JSON corrompu, continuer
+        }
+      }
+
+      // ─── Étape 3 : Pas de cache → essayer l'API directement ─────────────
       if (staffToken) {
         try {
           const user = await getStaffProfile();
-          await SecureStore.setItemAsync(CACHED_STAFF_KEY, JSON.stringify(user));
+          await SecureStore.setItemAsync(CACHED_STAFF_KEY, JSON.stringify(user)).catch(() => {});
           set({ auth: { status: "staff", user } });
           return;
         } catch {
-          // API failed — try cached staff
-          const cached = await SecureStore.getItemAsync(CACHED_STAFF_KEY);
-          if (cached) {
-            try {
-              const user: StaffUser = JSON.parse(cached);
-              set({ auth: { status: "staff", user } });
-              return;
-            } catch {
-              // ignore
-            }
-          }
-          await SecureStore.deleteItemAsync(STAFF_TOKEN_KEY);
-          await SecureStore.deleteItemAsync(CACHED_STAFF_KEY);
+          await SecureStore.deleteItemAsync(STAFF_TOKEN_KEY).catch(() => {});
         }
       }
 
+      if (customerToken) {
+        try {
+          const customer = await getCustomerProfile();
+          await SecureStore.setItemAsync(CACHED_CUSTOMER_KEY, JSON.stringify(customer)).catch(() => {});
+          if (customer.status === "APPROVED") {
+            set({ auth: { status: "customer", customer } });
+          } else if (customer.status === "PENDING") {
+            set({ auth: { status: "pending", customer } });
+          } else {
+            set({ auth: { status: "unauthenticated" } });
+          }
+          return;
+        } catch {
+          await SecureStore.deleteItemAsync(CUSTOMER_TOKEN_KEY).catch(() => {});
+        }
+      }
+
+      // Aucun token valide
       set({ auth: { status: "unauthenticated" } });
     } catch {
+      // Erreur inattendue → ne pas crasher
       set({ auth: { status: "unauthenticated" } });
     }
   },
@@ -109,8 +152,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   loginAsCustomer: async (email: string, password: string) => {
     const result = await loginCustomer(email, password);
     const customer = result.customer;
-    // Cache customer data
-    await SecureStore.setItemAsync(CACHED_CUSTOMER_KEY, JSON.stringify(customer));
+    await SecureStore.setItemAsync(CACHED_CUSTOMER_KEY, JSON.stringify(customer)).catch(() => {});
     if (customer.status === "PENDING") {
       set({ auth: { status: "pending", customer } });
     } else if (customer.status === "APPROVED") {
@@ -123,7 +165,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   loginAsStaff: async (email: string, password: string) => {
     const result = await loginStaff(email, password);
     if (result.user) {
-      await SecureStore.setItemAsync(CACHED_STAFF_KEY, JSON.stringify(result.user));
+      await SecureStore.setItemAsync(CACHED_STAFF_KEY, JSON.stringify(result.user)).catch(() => {});
       set({ auth: { status: "staff", user: result.user } });
     } else {
       throw new Error("Identifiants incorrects ou accès refusé");
@@ -141,18 +183,20 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     } catch {
       // ignore logout errors
     }
-    // Clear all cached data
-    await SecureStore.deleteItemAsync(CUSTOMER_TOKEN_KEY);
-    await SecureStore.deleteItemAsync(STAFF_TOKEN_KEY);
-    await SecureStore.deleteItemAsync(CACHED_CUSTOMER_KEY);
-    await SecureStore.deleteItemAsync(CACHED_STAFF_KEY);
+    // Effacer toutes les données en cache
+    await Promise.all([
+      SecureStore.deleteItemAsync(CUSTOMER_TOKEN_KEY).catch(() => {}),
+      SecureStore.deleteItemAsync(STAFF_TOKEN_KEY).catch(() => {}),
+      SecureStore.deleteItemAsync(CACHED_CUSTOMER_KEY).catch(() => {}),
+      SecureStore.deleteItemAsync(CACHED_STAFF_KEY).catch(() => {}),
+    ]);
     set({ auth: { status: "unauthenticated" } });
   },
 
   refreshCustomer: async () => {
     try {
       const customer = await getCustomerProfile();
-      await SecureStore.setItemAsync(CACHED_CUSTOMER_KEY, JSON.stringify(customer));
+      await SecureStore.setItemAsync(CACHED_CUSTOMER_KEY, JSON.stringify(customer)).catch(() => {});
       if (customer.status === "APPROVED") {
         set({ auth: { status: "customer", customer } });
       }
