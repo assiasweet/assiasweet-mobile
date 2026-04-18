@@ -221,6 +221,7 @@ export default function HomeScreen() {
   const [bestsellers, setBestsellers] = useState<Product[]>([]);
   const [newProducts, setNewProducts] = useState<Product[]>([]);
   const [youLikeProducts, setYouLikeProducts] = useState<Product[]>([]);
+  const [fetes, setFetes] = useState<Array<{ id: string; titre: string; emoji: string; dateLabel: string; image: string; isFeatured: boolean }>>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [bannerIdx, setBannerIdx] = useState(0);
@@ -231,11 +232,12 @@ export default function HomeScreen() {
 
   const loadData = useCallback(async () => {
     try {
-      const [catRes, prodRes, featuredRes, slidersRes] = await Promise.all([
+      const [catRes, prodRes, featuredRes, slidersRes, fetesRes] = await Promise.all([
         fetch("https://www.assiasweet.pro/api/categories").then((r) => r.json()),
         fetch("https://www.assiasweet.pro/api/produits?limit=40").then((r) => r.json()),
         fetch("https://www.assiasweet.pro/api/produits?featured=true&limit=20").then((r) => r.json()),
         fetch("https://www.assiasweet.pro/api/sliders/generate").then((r) => r.json()).catch(() => ({ sliders: [] })),
+        fetch("https://www.assiasweet.pro/api/fetes").then((r) => r.json()).catch(() => ({ fetes: [] })),
       ]);
 
       if (catRes?.categories) {
@@ -274,6 +276,10 @@ export default function HomeScreen() {
       const featuredAll: Product[] = featuredRes?.products ?? featuredRes?.data ?? (Array.isArray(featuredRes) ? featuredRes : []);
       const youLike = featuredAll.filter((p) => p.image && p.priceHT);
       setYouLikeProducts(youLike.slice(0, 10));
+      // Fêtes & Occasions
+      const rawFetes = (fetesRes?.fetes ?? []) as Array<{ id: string; titre: string; emoji: string; dateLabel: string; image: string; isFeatured: boolean; actif: boolean; ordre: number }>;
+      const activeFetes = rawFetes.filter((f) => f.actif).sort((a, b) => a.ordre - b.ordre);
+      setFetes(activeFetes);
     } catch {
       // Silencieux : pas de bandeau d'erreur
     } finally {
@@ -574,6 +580,102 @@ export default function HomeScreen() {
             />
           </View>
         )}
+        {/* ── SECTION FÊTES & OCCASIONS ── */}
+        {fetes.length > 0 && (
+          <View style={{ marginTop: 28 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, marginBottom: 14 }}>
+              <View>
+                <Text style={{ fontSize: 18, fontWeight: "800", color: "#1E1E1E" }}>Fêtes, Univers & Occasions</Text>
+                <Text style={{ fontSize: 12, color: "#9CA3AF", marginTop: 2 }}>Des confiseries pour chaque moment de l'année</Text>
+              </View>
+              <TouchableOpacity onPress={() => router.push("/(tabs)/catalog" as never)}>
+                <Text style={{ fontSize: 13, color: "#E91E7B", fontWeight: "600" }}>Voir tout →</Text>
+              </TouchableOpacity>
+            </View>
+            {/* Grille style site web : grande carte à gauche + 2x2 à droite */}
+            <View style={{ flexDirection: "row", paddingHorizontal: 16, gap: 8 }}>
+              {/* Grande carte featured */}
+              {fetes.filter((f) => f.isFeatured).slice(0, 1).map((fete) => (
+                <TouchableOpacity
+                  key={fete.id}
+                  onPress={() => router.push("/(tabs)/catalog" as never)}
+                  activeOpacity={0.88}
+                  style={{ flex: 1.3, height: 200, borderRadius: 16, overflow: "hidden", backgroundColor: "#F3F4F6" }}
+                >
+                  {fete.image ? (
+                    <Image source={{ uri: fete.image }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+                  ) : null}
+                  <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: 12, backgroundColor: "rgba(0,0,0,0.45)" }}>
+                    <Text style={{ color: "white", fontSize: 14, fontWeight: "800", lineHeight: 18 }} numberOfLines={2}>{fete.titre}</Text>
+                    {fete.dateLabel ? <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, marginTop: 2 }}>{fete.dateLabel}</Text> : null}
+                    <Text style={{ color: "#E91E7B", fontSize: 12, fontWeight: "600", marginTop: 4 }}>Découvrir la sélection →</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+              {/* Grille 2x2 des autres occasions */}
+              <View style={{ flex: 1, gap: 8 }}>
+                {fetes.filter((f) => !f.isFeatured).slice(0, 4).reduce<Array<Array<typeof fetes[0]>>>((rows, item, i) => {
+                  if (i % 2 === 0) rows.push([item]);
+                  else rows[rows.length - 1].push(item);
+                  return rows;
+                }, []).map((row, rowIdx) => (
+                  <View key={rowIdx} style={{ flexDirection: "row", gap: 8 }}>
+                    {row.map((fete) => (
+                      <TouchableOpacity
+                        key={fete.id}
+                        onPress={() => router.push("/(tabs)/catalog" as never)}
+                        activeOpacity={0.88}
+                        style={{ flex: 1, height: 96, borderRadius: 12, overflow: "hidden", backgroundColor: "#F3F4F6" }}
+                      >
+                        {fete.image ? (
+                          <Image source={{ uri: fete.image }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+                        ) : null}
+                        <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: 8, backgroundColor: "rgba(0,0,0,0.5)" }}>
+                          <Text style={{ color: "white", fontSize: 11, fontWeight: "700", lineHeight: 14 }} numberOfLines={2}>
+                            {fete.emoji ? fete.emoji + " " : ""}{fete.titre}
+                          </Text>
+                          {fete.dateLabel ? <Text style={{ color: "rgba(255,255,255,0.75)", fontSize: 10 }}>{fete.dateLabel}</Text> : null}
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                ))}
+              </View>
+            </View>
+          </View>
+        )}
+        {/* ── SECTION AVIS CLIENTS ── */}
+        <View style={{ marginTop: 28, paddingHorizontal: 16 }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <View>
+              <Text style={{ fontSize: 18, fontWeight: "800", color: "#1E1E1E" }}>Avis clients</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 }}>
+                <Text style={{ fontSize: 20, color: "#F59E0B" }}>★★★★★</Text>
+                <Text style={{ fontSize: 13, fontWeight: "700", color: "#1E1E1E" }}>4.9/5</Text>
+                <Text style={{ fontSize: 12, color: "#9CA3AF" }}>sur 104+ avis vérifiés</Text>
+              </View>
+            </View>
+          </View>
+          {[
+            { name: "Mohammed B.", location: "Paris 18e", date: "12/03/2024", text: "Excellent grossiste, livraison rapide et produits de qualité. Je commande depuis 3 ans, jamais déçu !" },
+            { name: "Jean-Pierre D.", location: "Roissy-en-France", date: "08/03/2024", text: "Le retrait en 2h est très pratique. Large choix de confiseries introuvables ailleurs." },
+            { name: "Fatima O.", location: "Aubervilliers", date: "05/03/2024", text: "Prix imbattables pour les forains. ASSIASWEET est notre fournisseur principal depuis 2019." },
+          ].map((avis, i) => (
+            <View key={i} style={{ backgroundColor: "white", borderRadius: 14, borderWidth: 1, borderColor: "#F3F4F6", padding: 14, marginBottom: 10 }}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                <View>
+                  <Text style={{ fontSize: 14, fontWeight: "700", color: "#1E1E1E" }}>{avis.name}</Text>
+                  <Text style={{ fontSize: 12, color: "#9CA3AF" }}>{avis.location}</Text>
+                </View>
+                <View style={{ alignItems: "flex-end" }}>
+                  <Text style={{ fontSize: 14, color: "#F59E0B" }}>★★★★★</Text>
+                  <Text style={{ fontSize: 11, color: "#9CA3AF" }}>{avis.date}</Text>
+                </View>
+              </View>
+              <Text style={{ fontSize: 13, color: "#374151", lineHeight: 20, fontStyle: "italic" }}>"{avis.text}"</Text>
+            </View>
+          ))}
+        </View>
         {/* ── SECTION PROMO (Nouvelle Arrivage + Livraison) ── */}
         <View style={styles.promoSection}>
           {/* Carte Nouvelle Arrivage */}

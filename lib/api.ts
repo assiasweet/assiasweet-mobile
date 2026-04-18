@@ -152,6 +152,7 @@ export async function registerCustomer(payload: {
   password: string;
   companyName: string;
   siret: string;
+  vatNumber?: string;
   phone: string;
   firstName: string;
   lastName: string;

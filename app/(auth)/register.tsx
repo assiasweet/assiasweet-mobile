@@ -42,7 +42,9 @@ export default function RegisterScreen() {
   const [shippingCity, setShippingCity] = useState("");
   const [shippingPostalCode, setShippingPostalCode] = useState("");
 
-  const activityTypes = ["Épicerie", "Forain", "Revendeur", "Grossiste", "Autre"];
+  const [vatNumber, setVatNumber] = useState("");
+
+  const activityTypes = ["Épicerie / Superette", "Forain / Marché", "Boulangerie / Pâtisserie", "Revendeur", "Grossiste", "Autre"];
 
   const handleNext = () => {
     if (step === 1) {
@@ -85,6 +87,7 @@ export default function RegisterScreen() {
         password,
         companyName: companyName.trim(),
         siret: siret.replace(/\s/g, ""),
+        vatNumber: vatNumber.trim() || undefined,
         phone: phone.trim(),
         firstName: firstName.trim(),
         lastName: lastName.trim(),
