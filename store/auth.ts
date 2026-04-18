@@ -31,6 +31,7 @@ interface AuthStore {
 
 const CUSTOMER_TOKEN_KEY = "customer_token";
 const STAFF_TOKEN_KEY = "staff_token";
+const STAFF_COOKIE_KEY = "staff_cookie"; // clé legacy — doit aussi être effacée au logout
 const CACHED_CUSTOMER_KEY = "cached_customer";
 const CACHED_STAFF_KEY = "cached_staff";
 
@@ -68,8 +69,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
               set({ auth: { status: "staff", user: freshUser } });
             })
             .catch(() => {
-              // Token expiré → déconnecter proprement
+              // Token expiré → déconnecter proprement (effacer aussi le cookie legacy)
               SecureStore.deleteItemAsync(STAFF_TOKEN_KEY).catch(() => {});
+              SecureStore.deleteItemAsync(STAFF_COOKIE_KEY).catch(() => {});
               SecureStore.deleteItemAsync(CACHED_STAFF_KEY).catch(() => {});
               set({ auth: { status: "unauthenticated" } });
             });
@@ -120,7 +122,10 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           set({ auth: { status: "staff", user } });
           return;
         } catch {
+          // Token invalide → tout effacer
           await SecureStore.deleteItemAsync(STAFF_TOKEN_KEY).catch(() => {});
+          await SecureStore.deleteItemAsync(STAFF_COOKIE_KEY).catch(() => {});
+          await SecureStore.deleteItemAsync(CACHED_STAFF_KEY).catch(() => {});
         }
       }
 
@@ -183,10 +188,11 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     } catch {
       // ignore logout errors
     }
-    // Effacer toutes les données en cache
+    // Effacer TOUTES les données en cache (y compris le cookie legacy staff_cookie)
     await Promise.all([
       SecureStore.deleteItemAsync(CUSTOMER_TOKEN_KEY).catch(() => {}),
       SecureStore.deleteItemAsync(STAFF_TOKEN_KEY).catch(() => {}),
+      SecureStore.deleteItemAsync(STAFF_COOKIE_KEY).catch(() => {}),
       SecureStore.deleteItemAsync(CACHED_CUSTOMER_KEY).catch(() => {}),
       SecureStore.deleteItemAsync(CACHED_STAFF_KEY).catch(() => {}),
     ]);
