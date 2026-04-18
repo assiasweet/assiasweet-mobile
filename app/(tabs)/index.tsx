@@ -676,9 +676,9 @@ export default function HomeScreen() {
             </View>
           ))}
         </View>
-        {/* ── SECTION PROMO (Nouvelle Arrivage + Livraison) ── */}
+         {/* ── SECTION PROMO (Nouvelle Arrivage + Livraison) ── */}
         <View style={styles.promoSection}>
-          {/* Carte Nouvelle Arrivage */}
+          {/* Carte Pâques — Édition Limitée */}
           <TouchableOpacity
             style={[styles.promoCard, styles.promoCardLeft]}
             activeOpacity={0.88}
@@ -687,16 +687,19 @@ export default function HomeScreen() {
             <View style={styles.promoCardOverlay} />
             <View style={styles.promoCardContent}>
               <View style={styles.promoBadge}>
-                <Text style={styles.promoBadgeText}>Édition Limitée</Text>
+                <Text style={styles.promoBadgeText}>🐣 Édition Limitée</Text>
               </View>
               <Text style={styles.promoCardTitle}>Nouvelle{"\n"}Arrivage Pâques</Text>
-              <Text style={styles.promoCardSub}>Œufs surprises, chocolats & confiseries</Text>
+              <Text style={styles.promoCardSub}>Œufs surprises, chocolats{"\n"}& confiseries de Pâques</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 6 }}>
+                <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 10 }}>🏷️</Text>
+                <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 10 }}>Prix HT professionnels</Text>
+              </View>
               <View style={styles.promoCtaBtn}>
                 <Text style={styles.promoCtaText}>Découvrir →</Text>
               </View>
             </View>
           </TouchableOpacity>
-
           {/* Carte Livraison */}
           <TouchableOpacity
             style={[styles.promoCard, styles.promoCardRight]}
@@ -708,7 +711,24 @@ export default function HomeScreen() {
                 <Text style={styles.promoBadgeText}>🚚 Livraison 24/48h</Text>
               </View>
               <Text style={[styles.promoCardTitle, { color: "#fff" }]}>Livraison{"\n"}France & Europe</Text>
-              <Text style={[styles.promoCardSub, { color: "rgba(255,255,255,0.85)" }]}>Retrait gratuit à Roissy</Text>
+              <View style={{ gap: 3, marginBottom: 10 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                  <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 10 }}>📦</Text>
+                  <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 10 }}>Tarif selon le poids</Text>
+                </View>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                  <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 10 }}>🎁</Text>
+                  <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 10 }}>Gratuite dès 500 € HT</Text>
+                </View>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                  <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 10 }}>📍</Text>
+                  <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 10 }}>Retrait gratuit Roissy</Text>
+                </View>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                  <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 10 }}>🕘</Text>
+                  <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 10 }}>Lun–Sam 9h–15h (sur RDV)</Text>
+                </View>
+              </View>
               <View style={[styles.promoCtaBtn, { backgroundColor: "#fff" }]}>
                 <Text style={[styles.promoCtaText, { color: "#E91E7B" }]}>Commander →</Text>
               </View>
