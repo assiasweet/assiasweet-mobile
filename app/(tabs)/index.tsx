@@ -232,58 +232,44 @@ export default function HomeScreen() {
 
   const loadData = useCallback(async () => {
     try {
-      const [catRes, prodRes, featuredRes, slidersRes, fetesRes] = await Promise.all([
-        fetch("https://www.assiasweet.pro/api/categories").then((r) => r.json()),
-        fetch("https://www.assiasweet.pro/api/produits?limit=40").then((r) => r.json()),
-        fetch("https://www.assiasweet.pro/api/produits?featured=true&limit=20").then((r) => r.json()),
+      // PHASE 1 : Données prioritaires (sliders + catégories) — affichage immédiat
+      const [slidersRes, catRes] = await Promise.all([
         fetch("https://www.assiasweet.pro/api/sliders/generate").then((r) => r.json()).catch(() => ({ sliders: [] })),
-        fetch("https://www.assiasweet.pro/api/fetes").then((r) => r.json()).catch(() => ({ fetes: [] })),
+        fetch("https://www.assiasweet.pro/api/categories").then((r) => r.json()).catch(() => ({ categories: [] })),
       ]);
-
-      if (catRes?.categories) {
-        setCategories(catRes.categories);
-      }
-      // Sliders depuis l'admin du site (même contenu que le site web)
+      if (catRes?.categories) setCategories(catRes.categories);
       const rawSliders = (slidersRes?.sliders ?? []) as Array<{ id: number | string; title?: string; subtitle?: string; cta_text?: string; image_url?: string }>;
       if (rawSliders.length > 0) {
         setBanners(buildBannersFromSliders(rawSliders));
       } else if (catRes?.categories) {
-        // Fallback : bannières depuis les catégories si aucun slider configuré
         const fallbackBanners = (catRes.categories as Array<{ id: string; slug: string; name: string; imageUrl?: string }>)
-          .filter((c) => c.imageUrl)
-          .slice(0, 5)
-          .map((c, i) => ({
-            id: c.id,
-            title: c.name,
-            subtitle: "",
-            cta: "Voir les produits",
-            imageUrl: c.imageUrl,
-            bg: SLIDER_COLORS[i % SLIDER_COLORS.length],
-          }));
+          .filter((c) => c.imageUrl).slice(0, 5)
+          .map((c, i) => ({ id: c.id, title: c.name, subtitle: "", cta: "Voir les produits", imageUrl: c.imageUrl, bg: SLIDER_COLORS[i % SLIDER_COLORS.length] }));
         setBanners(fallbackBanners);
       }
+      // Afficher l'interface dès que sliders + catégories sont chargés
+      setIsLoading(false);
 
+      // PHASE 2 : Données secondaires en arrière-plan (produits + fêtes)
+      const [prodRes, featuredRes, fetesRes] = await Promise.all([
+        fetch("https://www.assiasweet.pro/api/produits?limit=20").then((r) => r.json()).catch(() => ({})),
+        fetch("https://www.assiasweet.pro/api/produits?featured=true&limit=10").then((r) => r.json()).catch(() => ({})),
+        fetch("https://www.assiasweet.pro/api/fetes").then((r) => r.json()).catch(() => ({ fetes: [] })),
+      ]);
       const all: Product[] = prodRes?.products ?? prodRes?.data ?? (Array.isArray(prodRes) ? prodRes : []);
       if (all.length > 0) {
-        // Best-sellers : isFeatured ou les 10 premiers
         const featured = all.filter((p) => p.isFeatured);
         setBestsellers(featured.length >= 4 ? featured.slice(0, 10) : all.slice(0, 10));
-        // Nouveautés
         const news = all.filter((p) => p.isNew);
         setNewProducts(news.length >= 4 ? news.slice(0, 10) : all.slice(10, 20));
       }
-      // Vous allez les aimer : produits featured avec image et prix
       const featuredAll: Product[] = featuredRes?.products ?? featuredRes?.data ?? (Array.isArray(featuredRes) ? featuredRes : []);
-      const youLike = featuredAll.filter((p) => p.image && p.priceHT);
-      setYouLikeProducts(youLike.slice(0, 10));
-      // Fêtes & Occasions
+      setYouLikeProducts(featuredAll.filter((p) => p.image && p.priceHT).slice(0, 10));
       const rawFetes = (fetesRes?.fetes ?? []) as Array<{ id: string; titre: string; emoji: string; dateLabel: string; image: string; isFeatured: boolean; actif: boolean; ordre: number }>;
-      const activeFetes = rawFetes.filter((f) => f.actif).sort((a, b) => a.ordre - b.ordre);
-      setFetes(activeFetes);
+      setFetes(rawFetes.filter((f) => f.actif).sort((a, b) => a.ordre - b.ordre));
     } catch {
-      // Silencieux : pas de bandeau d'erreur
-    } finally {
       setIsLoading(false);
+    } finally {
       setRefreshing(false);
     }
   }, []);
@@ -644,38 +630,7 @@ export default function HomeScreen() {
             </View>
           </View>
         )}
-        {/* ── SECTION AVIS CLIENTS ── */}
-        <View style={{ marginTop: 28, paddingHorizontal: 16 }}>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-            <View>
-              <Text style={{ fontSize: 18, fontWeight: "800", color: "#1E1E1E" }}>Avis clients</Text>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 }}>
-                <Text style={{ fontSize: 20, color: "#F59E0B" }}>★★★★★</Text>
-                <Text style={{ fontSize: 13, fontWeight: "700", color: "#1E1E1E" }}>4.9/5</Text>
-                <Text style={{ fontSize: 12, color: "#9CA3AF" }}>sur 104+ avis vérifiés</Text>
-              </View>
-            </View>
-          </View>
-          {[
-            { name: "Mohammed B.", location: "Paris 18e", date: "12/03/2024", text: "Excellent grossiste, livraison rapide et produits de qualité. Je commande depuis 3 ans, jamais déçu !" },
-            { name: "Jean-Pierre D.", location: "Roissy-en-France", date: "08/03/2024", text: "Le retrait en 2h est très pratique. Large choix de confiseries introuvables ailleurs." },
-            { name: "Fatima O.", location: "Aubervilliers", date: "05/03/2024", text: "Prix imbattables pour les forains. ASSIASWEET est notre fournisseur principal depuis 2019." },
-          ].map((avis, i) => (
-            <View key={i} style={{ backgroundColor: "white", borderRadius: 14, borderWidth: 1, borderColor: "#F3F4F6", padding: 14, marginBottom: 10 }}>
-              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-                <View>
-                  <Text style={{ fontSize: 14, fontWeight: "700", color: "#1E1E1E" }}>{avis.name}</Text>
-                  <Text style={{ fontSize: 12, color: "#9CA3AF" }}>{avis.location}</Text>
-                </View>
-                <View style={{ alignItems: "flex-end" }}>
-                  <Text style={{ fontSize: 14, color: "#F59E0B" }}>★★★★★</Text>
-                  <Text style={{ fontSize: 11, color: "#9CA3AF" }}>{avis.date}</Text>
-                </View>
-              </View>
-              <Text style={{ fontSize: 13, color: "#374151", lineHeight: 20, fontStyle: "italic" }}>"{avis.text}"</Text>
-            </View>
-          ))}
-        </View>
+
          {/* ── SECTION PROMO (Nouvelle Arrivage + Livraison) ── */}
         <View style={styles.promoSection}>
           {/* Carte Pâques — Édition Limitée */}
