@@ -169,3 +169,18 @@
 - [x] Composant SplashAnimation : fond rose pulsant, 12 particules bonbons explosant depuis le centre, logo tombant du haut avec rebond élastique, shimmer doré, 4 cercles d'onde irradiants, exit zoom-out + fade
 - [x] _layout.tsx : SplashAnimation par-dessus tout le contenu, disparaît après 3s
 - [x] Écran paypal-payment ajouté dans le Stack avec headerShown: false
+
+## Cohérence Site Web ↔ App Mobile Client (18/04/2026)
+- [ ] Corriger minimum de commande : 100€ → 150€ HT dans cart.tsx
+- [ ] Ajouter champ code promo dans le panier (appel API applyPromoCode)
+- [ ] Ajouter champ N° TVA intracommunautaire dans le formulaire d'inscription
+- [ ] Corriger les types d'activité pour correspondre au site (Épicerie/Superette, Forain/Marché, Boulangerie/Pâtisserie, Autre)
+- [ ] Ajouter section Fêtes & Occasions sur l'écran d'accueil
+- [ ] Ajouter section Avis clients sur l'écran d'accueil
+
+## Correction filtrage catalogue + cache API (20/04/2026)
+- [x] Identifier la cause racine du bug filtrage : useCallback loadProducts sans useEffect déclencheur
+- [x] Ajouter useEffect sur [selectedCategory, selectedBrand, filterHalal, filterNew, filterPromo, sortBy] → loadProducts(true)
+- [x] Confirmer que le paramètre API correct est `category` (sans 'e') — retourne les produits filtrés
+- [x] Implémenter cache AsyncStorage TTL 10min pour getCategories() et getSliders() dans api.ts
+- [ ] Build EAS client v4 (production-client-apk) avec les corrections

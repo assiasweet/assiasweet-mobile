@@ -1,4 +1,5 @@
 import * as SecureStore from "expo-secure-store";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import type {
   ProductsResponse,
   Product,
@@ -335,9 +336,34 @@ export async function getProduct(idOrSlug: string): Promise<Product> {
   return data as Product;
 }
 
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+async function getCached<T>(key: string): Promise<T | null> {
+  try {
+    const raw = await AsyncStorage.getItem(key);
+    if (!raw) return null;
+    const { data, ts } = JSON.parse(raw) as { data: T; ts: number };
+    if (Date.now() - ts > CACHE_TTL_MS) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+async function setCache<T>(key: string, data: T): Promise<void> {
+  try {
+    await AsyncStorage.setItem(key, JSON.stringify({ data, ts: Date.now() }));
+  } catch {
+    // ignore cache write errors
+  }
+}
+
 export async function getCategories(): Promise<{ categories: Category[] }> {
-  // L'API retourne { categories: [...] }
-  return request<{ categories: Category[] }>("/categories");
+  const cached = await getCached<{ categories: Category[] }>("cache_categories");
+  if (cached) return cached;
+  const result = await request<{ categories: Category[] }>("/categories");
+  await setCache("cache_categories", result);
+  return result;
 }
 
 export async function searchProducts(q: string): Promise<Product[]> {
@@ -345,8 +371,11 @@ export async function searchProducts(q: string): Promise<Product[]> {
 }
 
 export async function getSliders(): Promise<{ sliders: Slider[] }> {
-  // L'API retourne { sliders: [...], source: '...' }
-  return request<{ sliders: Slider[] }>("/sliders/generate");
+  const cached = await getCached<{ sliders: Slider[] }>("cache_sliders");
+  if (cached) return cached;
+  const result = await request<{ sliders: Slider[] }>("/sliders/generate");
+  await setCache("cache_sliders", result);
+  return result;
 }
 
 export async function getSettings(): Promise<SiteSettings> {

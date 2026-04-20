@@ -180,6 +180,11 @@ export default function CatalogScreen() {
     }
   }, [search, selectedCategory, selectedBrand, filterHalal, filterNew, filterPromo, sortBy, page]);
 
+  // Recharger les produits quand les filtres changent
+  useEffect(() => {
+    loadProducts(true);
+  }, [selectedCategory, selectedBrand, filterHalal, filterNew, filterPromo, sortBy]);
+
   useEffect(() => {
     getCategories()
       .then((resp) => {
