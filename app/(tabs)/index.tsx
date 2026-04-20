@@ -566,128 +566,83 @@ export default function HomeScreen() {
             />
           </View>
         )}
-        {/* ── SECTION FÊTES & OCCASIONS ── */}
+        {/* ── SECTION FÊTES & OCCASIONS ── scroll horizontal compact style Stories */}
         {fetes.length > 0 && (
-          <View style={{ marginTop: 28 }}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, marginBottom: 14 }}>
-              <View>
-                <Text style={{ fontSize: 18, fontWeight: "800", color: "#1E1E1E" }}>Fêtes, Univers & Occasions</Text>
-                <Text style={{ fontSize: 12, color: "#9CA3AF", marginTop: 2 }}>Des confiseries pour chaque moment de l'année</Text>
-              </View>
+          <View style={{ marginTop: 24 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 16, marginBottom: 12 }}>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: "#1E1E1E" }}>Fêtes & Occasions</Text>
               <TouchableOpacity onPress={() => router.push("/(tabs)/catalog" as never)}>
-                <Text style={{ fontSize: 13, color: "#E91E7B", fontWeight: "600" }}>Voir tout →</Text>
+                <Text style={{ fontSize: 13, color: "#E91E7B", fontWeight: "600" }}>Voir tout</Text>
               </TouchableOpacity>
             </View>
-            {/* Grille style site web : grande carte à gauche + 2x2 à droite */}
-            <View style={{ flexDirection: "row", paddingHorizontal: 16, gap: 8 }}>
-              {/* Grande carte featured */}
-              {fetes.filter((f) => f.isFeatured).slice(0, 1).map((fete) => (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}
+            >
+              {fetes.slice(0, 8).map((fete) => (
                 <TouchableOpacity
                   key={fete.id}
                   onPress={() => router.push("/(tabs)/catalog" as never)}
-                  activeOpacity={0.88}
-                  style={{ flex: 1.3, height: 200, borderRadius: 16, overflow: "hidden", backgroundColor: "#F3F4F6" }}
+                  activeOpacity={0.85}
+                  style={{ width: 100, alignItems: "center" }}
                 >
-                  {fete.image ? (
-                    <Image source={{ uri: fete.image }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
-                  ) : null}
-                  <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: 12, backgroundColor: "rgba(0,0,0,0.45)" }}>
-                    <Text style={{ color: "white", fontSize: 14, fontWeight: "800", lineHeight: 18 }} numberOfLines={2}>{fete.titre}</Text>
-                    {fete.dateLabel ? <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, marginTop: 2 }}>{fete.dateLabel}</Text> : null}
-                    <Text style={{ color: "#E91E7B", fontSize: 12, fontWeight: "600", marginTop: 4 }}>Découvrir la sélection →</Text>
+                  <View style={{ width: 80, height: 80, borderRadius: 20, overflow: "hidden", backgroundColor: "#F3F4F6", marginBottom: 6 }}>
+                    {fete.image ? (
+                      <Image source={{ uri: fete.image }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+                    ) : (
+                      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+                        <Text style={{ fontSize: 28 }}>{fete.emoji || "🎉"}</Text>
+                      </View>
+                    )}
+                    {/* Overlay gradient bas */}
+                    <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 30, backgroundColor: "rgba(0,0,0,0.35)" }} />
                   </View>
+                  <Text style={{ fontSize: 11, fontWeight: "600", color: "#1E1E1E", textAlign: "center", lineHeight: 14 }} numberOfLines={2}>
+                    {fete.titre}
+                  </Text>
+                  {fete.dateLabel ? (
+                    <Text style={{ fontSize: 10, color: "#9CA3AF", marginTop: 1, textAlign: "center" }} numberOfLines={1}>
+                      {fete.dateLabel}
+                    </Text>
+                  ) : null}
                 </TouchableOpacity>
               ))}
-              {/* Grille 2x2 des autres occasions */}
-              <View style={{ flex: 1, gap: 8 }}>
-                {fetes.filter((f) => !f.isFeatured).slice(0, 4).reduce<Array<Array<typeof fetes[0]>>>((rows, item, i) => {
-                  if (i % 2 === 0) rows.push([item]);
-                  else rows[rows.length - 1].push(item);
-                  return rows;
-                }, []).map((row, rowIdx) => (
-                  <View key={rowIdx} style={{ flexDirection: "row", gap: 8 }}>
-                    {row.map((fete) => (
-                      <TouchableOpacity
-                        key={fete.id}
-                        onPress={() => router.push("/(tabs)/catalog" as never)}
-                        activeOpacity={0.88}
-                        style={{ flex: 1, height: 96, borderRadius: 12, overflow: "hidden", backgroundColor: "#F3F4F6" }}
-                      >
-                        {fete.image ? (
-                          <Image source={{ uri: fete.image }} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
-                        ) : null}
-                        <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: 8, backgroundColor: "rgba(0,0,0,0.5)" }}>
-                          <Text style={{ color: "white", fontSize: 11, fontWeight: "700", lineHeight: 14 }} numberOfLines={2}>
-                            {fete.emoji ? fete.emoji + " " : ""}{fete.titre}
-                          </Text>
-                          {fete.dateLabel ? <Text style={{ color: "rgba(255,255,255,0.75)", fontSize: 10 }}>{fete.dateLabel}</Text> : null}
-                        </View>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                ))}
-              </View>
-            </View>
+            </ScrollView>
           </View>
         )}
 
-         {/* ── SECTION PROMO (Nouvelle Arrivage + Livraison) ── */}
-        <View style={styles.promoSection}>
-          {/* Carte Pâques — Édition Limitée */}
+        {/* ── SECTION INFO BANNIÈRES slim style iOS ── */}
+        <View style={{ paddingHorizontal: 16, gap: 10, marginTop: 20, marginBottom: 28 }}>
+          {/* Bannière Nouveautés Pâques */}
           <TouchableOpacity
-            style={[styles.promoCard, styles.promoCardLeft]}
-            activeOpacity={0.88}
+            activeOpacity={0.85}
             onPress={() => router.push("/(tabs)/catalog?filter=new" as never)}
+            style={styles.infoBanner}
           >
-            <View style={styles.promoCardOverlay} />
-            <View style={styles.promoCardContent}>
-              <View style={styles.promoBadge}>
-                <Text style={styles.promoBadgeText}>🐣 Édition Limitée</Text>
-              </View>
-              <Text style={styles.promoCardTitle}>Nouvelle{"\n"}Arrivage Pâques</Text>
-              <Text style={styles.promoCardSub}>Œufs surprises, chocolats{"\n"}& confiseries de Pâques</Text>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 6 }}>
-                <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 10 }}>🏷️</Text>
-                <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 10 }}>Prix HT professionnels</Text>
-              </View>
-              <View style={styles.promoCtaBtn}>
-                <Text style={styles.promoCtaText}>Découvrir →</Text>
-              </View>
+            <View style={[styles.infoBannerIcon, { backgroundColor: "#FFF3E0" }]}>
+              <Text style={{ fontSize: 22 }}>🐣</Text>
             </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.infoBannerTitle}>Nouveautés Pâques</Text>
+              <Text style={styles.infoBannerSub}>Œufs, chocolats & confiseries — Prix HT pro</Text>
+            </View>
+            <Text style={{ fontSize: 18, color: "#E91E7B", fontWeight: "300" }}>›</Text>
           </TouchableOpacity>
-          {/* Carte Livraison */}
+          {/* Bannière Livraison */}
           <TouchableOpacity
-            style={[styles.promoCard, styles.promoCardRight]}
-            activeOpacity={0.88}
+            activeOpacity={0.85}
             onPress={() => router.push("/(tabs)/catalog" as never)}
+            style={styles.infoBanner}
           >
-            <View style={styles.promoCardContent}>
-              <View style={[styles.promoBadge, { backgroundColor: "rgba(255,255,255,0.25)" }]}>
-                <Text style={styles.promoBadgeText}>🚚 Livraison 24/48h</Text>
-              </View>
-              <Text style={[styles.promoCardTitle, { color: "#fff" }]}>Livraison{"\n"}France & Europe</Text>
-              <View style={{ gap: 3, marginBottom: 10 }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                  <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 10 }}>📦</Text>
-                  <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 10 }}>Tarif selon le poids</Text>
-                </View>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                  <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 10 }}>🎁</Text>
-                  <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 10 }}>Gratuite dès 500 € HT</Text>
-                </View>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                  <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 10 }}>📍</Text>
-                  <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 10 }}>Retrait gratuit Roissy</Text>
-                </View>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                  <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 10 }}>🕘</Text>
-                  <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 10 }}>Lun–Sam 9h–15h (sur RDV)</Text>
-                </View>
-              </View>
-              <View style={[styles.promoCtaBtn, { backgroundColor: "#fff" }]}>
-                <Text style={[styles.promoCtaText, { color: "#E91E7B" }]}>Commander →</Text>
-              </View>
+            <View style={[styles.infoBannerIcon, { backgroundColor: "#FCE4EC" }]}>
+              <Text style={{ fontSize: 22 }}>🚚</Text>
             </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.infoBannerTitle}>Livraison France & Europe</Text>
+              <Text style={styles.infoBannerSub}>Gratuite dès 500 € HT · Retrait Roissy</Text>
+            </View>
+            <Text style={{ fontSize: 18, color: "#E91E7B", fontWeight: "300" }}>›</Text>
           </TouchableOpacity>
         </View>
 
@@ -863,72 +818,39 @@ const styles = StyleSheet.create({
   cardName: { fontSize: 13, fontWeight: "600", color: "#1E1E1E", lineHeight: 18, marginBottom: 6 },
   cardPrice: { fontSize: 16, fontWeight: "800", color: "#1E1E1E" },
   cardPriceUnit: { fontSize: 12, fontWeight: "400", color: "#9CA3AF" },
-  // Section promo
-  promoSection: {
+  // Bannières info slim style iOS
+  infoBanner: {
     flexDirection: "row",
-    paddingHorizontal: 16,
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     gap: 12,
-    marginBottom: 32,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#F3F4F6",
   },
-  promoCard: {
-    flex: 1,
-    borderRadius: 18,
-    overflow: "hidden",
-    minHeight: 180,
-    justifyContent: "flex-end",
-    position: "relative",
+  infoBannerIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  promoCardLeft: {
-    backgroundColor: "#2D4A2D",
-  },
-  promoCardRight: {
-    backgroundColor: "#C2185B",
-  },
-  promoCardOverlay: {
-    position: "absolute",
-    top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.25)",
-  },
-  promoCardContent: {
-    padding: 14,
-    zIndex: 1,
-  },
-  promoBadge: {
-    backgroundColor: "rgba(255,255,255,0.2)",
-    borderRadius: 20,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    alignSelf: "flex-start",
-    marginBottom: 8,
-  },
-  promoBadgeText: {
-    color: "#fff",
-    fontSize: 10,
-    fontWeight: "600",
-  },
-  promoCardTitle: {
-    fontSize: 15,
-    fontWeight: "800",
-    color: "#fff",
-    lineHeight: 20,
-    marginBottom: 4,
-  },
-  promoCardSub: {
-    fontSize: 11,
-    color: "rgba(255,255,255,0.75)",
-    lineHeight: 15,
-    marginBottom: 10,
-  },
-  promoCtaBtn: {
-    backgroundColor: "rgba(255,255,255,0.9)",
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    alignSelf: "flex-start",
-  },
-  promoCtaText: {
-    fontSize: 12,
+  infoBannerTitle: {
+    fontSize: 14,
     fontWeight: "700",
     color: "#1E1E1E",
+    marginBottom: 2,
+  },
+  infoBannerSub: {
+    fontSize: 12,
+    color: "#9CA3AF",
+    lineHeight: 16,
   },
 });
