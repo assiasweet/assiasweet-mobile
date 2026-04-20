@@ -183,4 +183,4 @@
 - [x] Ajouter useEffect sur [selectedCategory, selectedBrand, filterHalal, filterNew, filterPromo, sortBy] → loadProducts(true)
 - [x] Confirmer que le paramètre API correct est `category` (sans 'e') — retourne les produits filtrés
 - [x] Implémenter cache AsyncStorage TTL 10min pour getCategories() et getSliders() dans api.ts
-- [ ] Build EAS client v4 (production-client-apk) avec les corrections
+- [x] Build EAS client v4 (production-client-apk) avec les corrections — ID: 66bb798b, APK: dFM7JNT78ptYTkB6ypeK4C.apk
