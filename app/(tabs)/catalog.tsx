@@ -180,6 +180,22 @@ export default function CatalogScreen() {
     }
   }, [search, selectedCategory, selectedBrand, filterHalal, filterNew, filterPromo, sortBy, page]);
 
+  // ── CORRECTION CLÉ : synchroniser les filtres avec les params URL à chaque navigation ──
+  // useState est initialisé une seule fois au montage. Si le catalogue est déjà monté
+  // (tab déjà visitée), les nouveaux params sont ignorés sans ce useEffect.
+  useEffect(() => {
+    const newCat = params.cat || params.categoryId || "";
+    const newBrand = params.brand || "";
+    const newFilterNew = params.filter === "new";
+    const newFilterPromo = params.filter === "promo";
+    const newSearch = params.search || params.q || "";
+    setSelectedCategory(newCat);
+    setSelectedBrand(newBrand);
+    setFilterNew(newFilterNew);
+    setFilterPromo(newFilterPromo);
+    if (newSearch) setSearch(newSearch);
+  }, [params.cat, params.categoryId, params.brand, params.filter, params.search, params.q]);
+
   // Recharger les produits quand les filtres changent
   useEffect(() => {
     loadProducts(true);
