@@ -167,27 +167,10 @@ export async function registerCustomer(payload: {
   shippingPostalCode?: string;
   shippingCountry?: string;
 }): Promise<{ success: boolean; message?: string }> {
-  const data = await request<{ success: boolean; message?: string; token?: string; customer?: Record<string, unknown> }>("/auth/register", {
+  return request("/auth/register", {
     method: "POST",
     body: JSON.stringify(payload),
   });
-  // Sauvegarder le token si retourné, et forcer status PENDING dans le cache
-  // pour que la reconnexion ultérieure affiche bien l'écran d'attente
-  if (data.token) {
-    await setCustomerToken(data.token);
-    const cachedCustomer = {
-      ...(data.customer ?? {}),
-      email: payload.email,
-      companyName: payload.companyName,
-      firstName: payload.firstName,
-      lastName: payload.lastName,
-      // Forcer PENDING indépendamment de ce que le backend retourne
-      isApproved: false,
-      status: "PENDING",
-    };
-    await SecureStore.setItemAsync("cached_customer", JSON.stringify(cachedCustomer)).catch(() => {});
-  }
-  return { success: data.success, message: data.message };
 }
 
 export async function logoutCustomer(): Promise<void> {
