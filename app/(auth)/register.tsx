@@ -12,11 +12,13 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { registerCustomer } from "@/lib/api";
+import { useAuthStore } from "@/store/auth";
 import { ScreenContainer } from "@/components/screen-container";
 
 const nav = router as unknown as { back: () => void; replace: (p: string) => void };
 
 export default function RegisterScreen() {
+  const loginAsCustomer = useAuthStore((s) => s.loginAsCustomer);
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -102,11 +104,9 @@ export default function RegisterScreen() {
         shippingCountry: "FR",
       });
 
-      Alert.alert(
-        "Inscription réussie !",
-        "Votre compte est en cours de validation. Vous recevrez un email dès qu'il sera activé.",
-        [{ text: "OK", onPress: () => nav.replace("/(auth)/pending") }]
-      );
+      // Connexion directe apr\u00e8s inscription
+      await loginAsCustomer(email.trim(), password);
+      nav.replace("/(tabs)");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Erreur lors de l'inscription";
       Alert.alert("Erreur", message);

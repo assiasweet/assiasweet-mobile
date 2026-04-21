@@ -166,11 +166,15 @@ export async function registerCustomer(payload: {
   shippingCity?: string;
   shippingPostalCode?: string;
   shippingCountry?: string;
-}): Promise<{ success: boolean; message?: string }> {
-  return request("/auth/register", {
+}): Promise<{ success: boolean; token?: string; customer?: Customer; message?: string }> {
+  const data = await request<{ success: boolean; token?: string; customer?: Customer; message?: string }>("/auth/register", {
     method: "POST",
     body: JSON.stringify(payload),
   });
+  if (data.token) {
+    await setCustomerToken(data.token);
+  }
+  return data;
 }
 
 export async function logoutCustomer(): Promise<void> {
