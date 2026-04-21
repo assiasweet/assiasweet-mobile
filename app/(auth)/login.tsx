@@ -116,9 +116,14 @@ export default function LoginScreen() {
                 Espace Staff
               </Text>
             ) : (
-              <Text style={{ fontSize: 14, color: "#6B7280", marginTop: 2 }}>
-                Grossiste B2B en confiseries
-              </Text>
+              <>
+                <Text style={{ fontSize: 15, fontWeight: "700", color: "#E91E7B", marginTop: 4, letterSpacing: 0.3 }}>
+                  ASSIASWEET
+                </Text>
+                <Text style={{ fontSize: 13, color: "#6B7280", marginTop: 2 }}>
+                  Grossiste en Bonbons
+                </Text>
+              </>
             )}
           </View>
 
@@ -267,13 +272,13 @@ export default function LoginScreen() {
           )}
 
           {/* Footer */}
-          <View style={{ alignItems: "center", marginTop: 32, paddingHorizontal: 24 }}>
-            <Text style={{ color: "#9CA3AF", fontSize: 12, textAlign: "center", lineHeight: 18 }}>
-              {isStaffApp
-                ? "Accès réservé au staff AssiaSweet"
-                : "Plateforme réservée aux professionnels\n(épiceries, forains, revendeurs)"}
-            </Text>
-          </View>
+          {isStaffApp && (
+            <View style={{ alignItems: "center", marginTop: 32, paddingHorizontal: 24 }}>
+              <Text style={{ color: "#9CA3AF", fontSize: 12, textAlign: "center", lineHeight: 18 }}>
+                Accès réservé au staff AssiaSweet
+              </Text>
+            </View>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </ScreenContainer>
