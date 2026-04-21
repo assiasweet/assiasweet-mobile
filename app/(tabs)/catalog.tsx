@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { useFocusEffect } from "expo-router";
 import {
   View,
   Text,
@@ -180,21 +181,35 @@ export default function CatalogScreen() {
     }
   }, [search, selectedCategory, selectedBrand, filterHalal, filterNew, filterPromo, sortBy, page]);
 
-  // ── CORRECTION CLÉ : synchroniser les filtres avec les params URL à chaque navigation ──
-  // useState est initialisé une seule fois au montage. Si le catalogue est déjà monté
-  // (tab déjà visitée), les nouveaux params sont ignorés sans ce useEffect.
-  useEffect(() => {
-    const newCat = params.cat || params.categoryId || "";
-    const newBrand = params.brand || "";
-    const newFilterNew = params.filter === "new";
-    const newFilterPromo = params.filter === "promo";
-    const newSearch = params.search || params.q || "";
-    setSelectedCategory(newCat);
-    setSelectedBrand(newBrand);
-    setFilterNew(newFilterNew);
-    setFilterPromo(newFilterPromo);
-    if (newSearch) setSearch(newSearch);
-  }, [params.cat, params.categoryId, params.brand, params.filter, params.search, params.q]);
+  // Ref pour mémoriser les derniers params appliqués (pour détecter les vrais changements)
+  const lastParamsRef = useRef("");
+
+  // ── SOLUTION ROBUSTE : useFocusEffect se déclenche à CHAQUE fois que l'écran devient actif ──
+  // Contrairement à useEffect sur params, cela fonctionne même si params.cat a la même
+  // valeur que la navigation précédente (ex: cliquer 2x sur la même catégorie).
+  useFocusEffect(
+    useCallback(() => {
+      const newCat = params.cat || params.categoryId || "";
+      const newBrand = params.brand || "";
+      const newFilterNew = params.filter === "new";
+      const newFilterPromo = params.filter === "promo";
+      const newSearch = params.search || params.q || "";
+      const paramsKey = `${newCat}|${newBrand}|${newFilterNew}|${newFilterPromo}|${newSearch}`;
+
+      // Appliquer les filtres et recharger
+      setSelectedCategory(newCat);
+      setSelectedBrand(newBrand);
+      setFilterNew(newFilterNew);
+      setFilterPromo(newFilterPromo);
+      if (newSearch) setSearch(newSearch);
+
+      // Forcer le rechargement si les params ont changé depuis le dernier focus
+      if (paramsKey !== lastParamsRef.current) {
+        lastParamsRef.current = paramsKey;
+        // Le rechargement sera déclenché par le useEffect sur [selectedCategory, ...]
+      }
+    }, [params.cat, params.categoryId, params.brand, params.filter, params.search, params.q])
+  );
 
   // Recharger les produits quand les filtres changent
   useEffect(() => {
