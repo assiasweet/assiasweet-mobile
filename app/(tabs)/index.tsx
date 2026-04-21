@@ -221,7 +221,7 @@ export default function HomeScreen() {
   const [bestsellers, setBestsellers] = useState<Product[]>([]);
   const [newProducts, setNewProducts] = useState<Product[]>([]);
   const [youLikeProducts, setYouLikeProducts] = useState<Product[]>([]);
-  const [fetes, setFetes] = useState<Array<{ id: string; titre: string; emoji: string; dateLabel: string; image: string; isFeatured: boolean }>>([]);
+  const [fetes, setFetes] = useState<Array<{ id: string; titre: string; emoji: string; dateLabel: string; image: string; isFeatured: boolean; catSlug: string }>>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [bannerIdx, setBannerIdx] = useState(0);
@@ -265,8 +265,25 @@ export default function HomeScreen() {
       }
       const featuredAll: Product[] = featuredRes?.products ?? featuredRes?.data ?? (Array.isArray(featuredRes) ? featuredRes : []);
       setYouLikeProducts(featuredAll.filter((p) => p.image && p.priceHT).slice(0, 10));
-      const rawFetes = (fetesRes?.fetes ?? []) as Array<{ id: string; titre: string; emoji: string; dateLabel: string; image: string; isFeatured: boolean; actif: boolean; ordre: number }>;
-      setFetes(rawFetes.filter((f) => f.actif).sort((a, b) => a.ordre - b.ordre));
+      const rawFetes = (fetesRes?.fetes ?? []) as Array<{ id: string; titre: string; emoji: string; dateLabel: string; image: string; isFeatured: boolean; actif: boolean; ordre: number; categorieSlug?: string; destinationUrl?: string }>;
+      // Extraire le slug de catégorie depuis destinationUrl (?cat=xxx) ou normaliser categorieSlug
+      const normSlug = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      const extractCatSlug = (f: typeof rawFetes[0]): string => {
+        // 1. Essayer d'extraire ?cat= depuis destinationUrl
+        if (f.destinationUrl) {
+          const match = f.destinationUrl.match(/[?&]cat=([^&]+)/);
+          if (match) return decodeURIComponent(match[1]);
+        }
+        // 2. Normaliser categorieSlug si présent
+        if (f.categorieSlug) return normSlug(f.categorieSlug);
+        return "";
+      };
+      setFetes(
+        rawFetes
+          .filter((f) => f.actif)
+          .sort((a, b) => a.ordre - b.ordre)
+          .map((f) => ({ ...f, catSlug: extractCatSlug(f) }))
+      );
     } catch {
       setIsLoading(false);
     } finally {
@@ -583,7 +600,12 @@ export default function HomeScreen() {
               {fetes.slice(0, 8).map((fete) => (
                 <TouchableOpacity
                   key={fete.id}
-                  onPress={() => router.push("/(tabs)/catalog" as never)}
+                  onPress={() => {
+                    const dest = fete.catSlug
+                      ? `/(tabs)/catalog?cat=${encodeURIComponent(fete.catSlug)}`
+                      : "/(tabs)/catalog";
+                    router.push(dest as never);
+                  }}
                   activeOpacity={0.85}
                   style={{ width: 100, alignItems: "center" }}
                 >
