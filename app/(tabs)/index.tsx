@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback, memo } from "react";
+import { PromoWelcomeModal } from "@/components/promo-welcome-modal";
 import {
   View,
   Text,
@@ -323,6 +324,8 @@ export default function HomeScreen() {
 
   return (
     <ScreenContainer containerClassName="bg-[#FAFAFA]" edges={["top", "left", "right"]}>
+      {/* ── POPUP PROMO BIENVENUE ── */}
+      <PromoWelcomeModal />
       {/* ── HEADER COMPACT ── */}
       <View style={styles.header}>
         {/* Barre de recherche */}
