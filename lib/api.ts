@@ -283,10 +283,7 @@ export async function getStaffProfile(): Promise<StaffUser> {
     if (parts.length !== 3) throw new Error("Invalid JWT");
     const payloadJson = decodeBase64Url(parts[1]);
     const payload = JSON.parse(payloadJson);
-    // Check expiry
-    if (payload.exp && payload.exp * 1000 < Date.now()) {
-      throw new Error("Staff token expired");
-    }
+    // Pas de vérification d'expiration : le JWT staff est sans expiration
     return {
       id: payload.id,
       email: payload.email,

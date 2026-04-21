@@ -69,11 +69,8 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
               set({ auth: { status: "staff", user: freshUser } });
             })
             .catch(() => {
-              // Token expiré → déconnecter proprement (effacer aussi le cookie legacy)
-              SecureStore.deleteItemAsync(STAFF_TOKEN_KEY).catch(() => {});
-              SecureStore.deleteItemAsync(STAFF_COOKIE_KEY).catch(() => {});
-              SecureStore.deleteItemAsync(CACHED_STAFF_KEY).catch(() => {});
-              set({ auth: { status: "unauthenticated" } });
+              // Erreur réseau ou token corrompu → garder la session en cache, ne pas déconnecter
+              // Le JWT staff est sans expiration, donc une erreur = problème réseau temporaire
             });
           return;
         } catch {
@@ -122,10 +119,15 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           set({ auth: { status: "staff", user } });
           return;
         } catch {
-          // Token invalide → tout effacer
-          await SecureStore.deleteItemAsync(STAFF_TOKEN_KEY).catch(() => {});
-          await SecureStore.deleteItemAsync(STAFF_COOKIE_KEY).catch(() => {});
-          await SecureStore.deleteItemAsync(CACHED_STAFF_KEY).catch(() => {});
+          // Erreur de décodage JWT (token corrompu) → tout effacer
+          // Note : on n'efface PAS en cas d'erreur réseau car le JWT est sans expiration
+          const token = await getStaffToken().catch(() => null);
+          if (!token || token.split('.').length !== 3) {
+            await SecureStore.deleteItemAsync(STAFF_TOKEN_KEY).catch(() => {});
+            await SecureStore.deleteItemAsync(STAFF_COOKIE_KEY).catch(() => {});
+            await SecureStore.deleteItemAsync(CACHED_STAFF_KEY).catch(() => {});
+          }
+          // Si le token semble valide mais qu'il y a une erreur réseau, continuer sans déconnecter
         }
       }
 
