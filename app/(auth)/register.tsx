@@ -48,11 +48,11 @@ export default function RegisterScreen() {
 
   const handleNext = () => {
     if (step === 1) {
-      if (!companyName.trim() || !siret.trim()) {
-        Alert.alert("Champs requis", "Veuillez renseigner le nom de l'entreprise et le SIRET.");
+      if (!companyName.trim()) {
+        Alert.alert("Champ requis", "Veuillez renseigner le nom de l'entreprise.");
         return;
       }
-      if (siret.replace(/\s/g, "").length !== 14) {
+      if (siret.trim() && siret.replace(/\s/g, "").length !== 14) {
         Alert.alert("SIRET invalide", "Le numéro SIRET doit contenir 14 chiffres.");
         return;
       }
@@ -151,7 +151,7 @@ export default function RegisterScreen() {
 
       <View>
         <Text className="text-sm font-medium text-foreground mb-2">
-          Numéro SIRET * (14 chiffres)
+          Numéro SIRET (optionnel)
         </Text>
         <TextInput
           value={siret}
