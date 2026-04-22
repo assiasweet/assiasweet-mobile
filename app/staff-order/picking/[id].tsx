@@ -15,7 +15,7 @@ import {
 import { useLocalSearchParams, router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { ScreenContainer } from "@/components/screen-container";
-import { BarcodeScanner } from "@/components/barcode-scanner";
+import { BarcodeScannerLazy as BarcodeScanner } from "@/components/barcode-scanner-lazy";
 import { getAdminOrder, updateOrderStatus, decrementProductStock } from "@/lib/api";
 import type { Order, OrderItem } from "@/lib/types";
 
@@ -72,18 +72,30 @@ export default function PickingScreen() {
     setShowScanner(false);
     setLastScanned(barcode);
 
-    // Chercher l'article correspondant (par SKU, barcode ou nom partiel)
-    const matchIndex = items.findIndex((item) => {
-      const sku = (item as PickItem & { productSku?: string }).productSku ?? "";
-      const name = item.productName?.toLowerCase() ?? "";
-      const bc = barcode.toLowerCase();
-      return (
-        sku.toLowerCase() === bc ||
-        sku.toLowerCase().includes(bc) ||
-        bc.includes(sku.toLowerCase()) ||
-        name.includes(bc)
-      );
+    // Chercher l'article correspondant (par barcode exact, SKU exact, puis SKU partiel)
+    // Priorité 1 : match exact sur le barcode du produit
+    let matchIndex = items.findIndex((item) => {
+      const productBarcode = item.product?.barcode ?? "";
+      return productBarcode !== "" && productBarcode === barcode;
     });
+
+    // Priorité 2 : match exact sur le SKU
+    if (matchIndex === -1) {
+      matchIndex = items.findIndex((item) => {
+        const sku = (item as PickItem & { productSku?: string }).productSku ?? "";
+        return sku !== "" && sku.toLowerCase() === barcode.toLowerCase();
+      });
+    }
+
+    // Priorité 3 : match partiel sur le SKU (le code scanné contient le SKU ou inversement)
+    if (matchIndex === -1) {
+      matchIndex = items.findIndex((item) => {
+        const sku = (item as PickItem & { productSku?: string }).productSku ?? "";
+        if (sku === "") return false;
+        const bc = barcode.toLowerCase();
+        return sku.toLowerCase().includes(bc) || bc.includes(sku.toLowerCase());
+      });
+    }
 
     if (matchIndex === -1) {
       if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);

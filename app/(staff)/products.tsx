@@ -13,7 +13,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
-import { BarcodeScanner } from "@/components/barcode-scanner";
+import { BarcodeScannerLazy as BarcodeScanner } from "@/components/barcode-scanner-lazy";
 import { getAdminProducts, updateProductStock, getProductByBarcode } from "@/lib/api";
 import { getProductImage } from "@/lib/types";
 import type { Product } from "@/lib/types";

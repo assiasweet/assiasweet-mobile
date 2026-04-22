@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef } from "react";
-import { Platform } from "react-native";
-import { useAudioPlayer, setAudioModeAsync } from "expo-audio";
-
-const KACHING_SOUND = require("@/assets/sounds/kaching.wav");
+import { Platform, InteractionManager } from "react-native";
 
 /**
  * Hook pour jouer le son ka-ching quand une nouvelle commande arrive.
  * Utiliser dans le dashboard staff et l'écran des commandes staff.
+ *
+ * Le player audio est initialisé de manière lazy (après les interactions)
+ * pour éviter les crashs natifs au redémarrage de l'app sur Android.
  *
  * Usage:
  * ```tsx
@@ -16,33 +16,64 @@ const KACHING_SOUND = require("@/assets/sounds/kaching.wav");
  * ```
  */
 export function useKaching() {
-  const player = useAudioPlayer(KACHING_SOUND);
   const initialized = useRef(false);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
+    mountedRef.current = true;
+
     if (Platform.OS === "web") return;
 
-    // Activer la lecture en mode silencieux iOS
-    setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
-    initialized.current = true;
+    // Lazy-load : initialiser le mode audio APRÈS les interactions
+    // pour éviter les crashs natifs au redémarrage Android
+    const task = InteractionManager.runAfterInteractions(async () => {
+      if (!mountedRef.current) return;
+
+      try {
+        const audioModule = await import("expo-audio");
+
+        // Configurer le mode audio (playsInSilentMode pour iOS)
+        if (Platform.OS === "ios") {
+          await audioModule.setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
+        }
+
+        initialized.current = true;
+      } catch {
+        // Si expo-audio n'est pas disponible, on ignore silencieusement
+      }
+    });
 
     return () => {
-      player.release();
+      mountedRef.current = false;
+      task.cancel();
+      initialized.current = false;
     };
-  }, [player]);
+  }, []);
 
-  const playKaching = useCallback(() => {
+  const playKaching = useCallback(async () => {
     if (Platform.OS === "web") return;
-    if (!initialized.current) return;
+    if (!mountedRef.current) return;
 
     try {
-      // Remettre au début et jouer
-      player.seekTo(0);
-      player.play();
+      const audioModule = await import("expo-audio");
+      const sound = require("@/assets/sounds/kaching.wav");
+
+      // Créer un player éphémère via l'API impérative (pas de hook)
+      const tempPlayer = audioModule.createAudioPlayer(sound);
+      tempPlayer.play();
+
+      // Libérer après la lecture (3s max pour un son court)
+      setTimeout(() => {
+        try {
+          tempPlayer.remove();
+        } catch {
+          // ignore
+        }
+      }, 3000);
     } catch {
       // Silencieux si le son ne peut pas être joué
     }
-  }, [player]);
+  }, []);
 
   return playKaching;
 }

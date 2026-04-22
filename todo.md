@@ -184,3 +184,13 @@
 - [x] Confirmer que le paramètre API correct est `category` (sans 'e') — retourne les produits filtrés
 - [x] Implémenter cache AsyncStorage TTL 10min pour getCategories() et getSliders() dans api.ts
 - [x] Build EAS client v4 (production-client-apk) avec les corrections — ID: 66bb798b, APK: dFM7JNT78ptYTkB6ypeK4C.apk
+
+## Bug crash Staff au redémarrage (22/04/2026)
+- [x] Analyser la cause du crash natif "AssiaSweet Staff s'arrête systématiquement" au 2e lancement
+- [x] Corriger le crash — désactiver New Architecture pour staff, lazy-load expo-audio et expo-camera
+- [ ] Builder APK staff corrigé et tester
+
+## Scan produit pour préparation commandes (22/04/2026)
+- [x] Ajouter le scan produit dans le flux de préparation de commande (pas uniquement stock)
+- [x] Le préparateur peut scanner chaque article pour confirmer la préparation
+- [x] Améliorer le matching : barcode exact → SKU exact → SKU partiel

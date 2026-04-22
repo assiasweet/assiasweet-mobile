@@ -59,7 +59,7 @@ const config: ExpoConfig = {
   icon:        v.icon,
   scheme:      v.scheme,
   userInterfaceStyle: "automatic",
-  newArchEnabled: true,
+  newArchEnabled: !isStaff,
   ios: {
     supportsTablet: true,
     bundleIdentifier: v.bundleId,
