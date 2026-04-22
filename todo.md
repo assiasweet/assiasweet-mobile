@@ -187,7 +187,10 @@
 
 ## Bug crash Staff au redémarrage (22/04/2026)
 - [x] Analyser la cause du crash natif "AssiaSweet Staff s'arrête systématiquement" au 2e lancement
-- [x] Corriger le crash — désactiver New Architecture pour staff, lazy-load expo-audio et expo-camera
+- [x] Corriger le crash — lazy-load expo-audio et expo-camera
+- [x] Désactiver edgeToEdgeEnabled pour staff (problèmes connus Android)
+- [x] Retirer expo-video plugin pour staff (non utilisé)
+- [x] Ajouter ErrorBoundary global pour attraper les crashs JS
 - [ ] Builder APK staff corrigé et tester
 
 ## Scan produit pour préparation commandes (22/04/2026)

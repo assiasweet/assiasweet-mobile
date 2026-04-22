@@ -59,7 +59,7 @@ const config: ExpoConfig = {
   icon:        v.icon,
   scheme:      v.scheme,
   userInterfaceStyle: "automatic",
-  newArchEnabled: !isStaff,
+  newArchEnabled: true,
   ios: {
     supportsTablet: true,
     bundleIdentifier: v.bundleId,
@@ -74,7 +74,7 @@ const config: ExpoConfig = {
       backgroundImage:  "./assets/images/android-icon-background.png",
       monochromeImage:  "./assets/images/android-icon-monochrome.png",
     },
-    edgeToEdgeEnabled: true,
+    edgeToEdgeEnabled: (!isStaff) as true,
     predictiveBackGestureEnabled: false,
     package: v.bundleId,
     permissions: ["POST_NOTIFICATIONS"],
@@ -106,10 +106,10 @@ const config: ExpoConfig = {
       "expo-audio",
       { microphonePermission: "Allow $(PRODUCT_NAME) to access your microphone." },
     ],
-    [
+    ...(!isStaff ? [[
       "expo-video",
       { supportsBackgroundPlayback: true, supportsPictureInPicture: true },
-    ],
+    ] as const] : []) as any[],
     [
       "expo-splash-screen",
       {

@@ -8,6 +8,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { View, StyleSheet } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
 import { StaffBanner } from "@/components/staff-banner";
+import { ErrorBoundary } from "@/components/error-boundary";
 import { SplashAnimation } from "@/components/splash-animation";
 import { isStaffApp, PRIMARY_COLOR } from "@/lib/app-variant";
 import { useAuthStore } from "@/store/auth";
@@ -100,6 +101,7 @@ export default function RootLayout() {
   }, []);
 
   return (
+    <ErrorBoundary>
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <StatusBar style={showSplash ? "dark" : "auto"} />
@@ -157,6 +159,7 @@ export default function RootLayout() {
         )}
       </SafeAreaProvider>
     </GestureHandlerRootView>
+    </ErrorBoundary>
   );
 }
 
